@@ -31,6 +31,8 @@ The onboarding domain contracts and deterministic mock catalogs now exist in the
 
 Deterministic access-policy validation now exists for onboarding recommendations.
 
+Deterministic onboarding-plan generation now exists for verified employee profiles.
+
 ## Backend Development
 
 Create and activate a Python 3.14 virtual environment:

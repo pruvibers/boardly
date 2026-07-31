@@ -38,3 +38,7 @@ Verified employee profiles are trusted records created by an authorized system. 
 ## Deterministic Policy Engine
 
 AI recommendations are untrusted inputs. The policy engine validates them using verified role IDs and fixed catalogs, and employee notes never control authorization. Critical resources are blocked, while allowed recommendations still require human approval. No real provisioning is implemented.
+
+## Deterministic Onboarding Planner
+
+The planner creates a safe baseline onboarding plan from a verified employee role. Software, documents and access recommendations come from deterministic templates and catalogs, and every access recommendation is validated by the policy engine. Employee notes do not influence planning or authorization. AI integration and real provisioning are not implemented yet.
