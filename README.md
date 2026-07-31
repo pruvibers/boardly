@@ -27,6 +27,8 @@ Core security principle: "AI recommends, policy engine restricts, humans approve
 
 This repository currently contains the initial project scaffold and minimal FastAPI backend foundation.
 
+The onboarding domain contracts and deterministic mock catalogs now exist in the backend.
+
 ## Backend Development
 
 Create and activate a Python 3.14 virtual environment:
