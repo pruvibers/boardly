@@ -30,3 +30,7 @@ Start the API:
 ```powershell
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
+
+## Onboarding Domain
+
+Verified employee profiles are trusted records created by an authorized system. Employee notes are untrusted input and must never control authorization. Catalogs are deterministic allowlists for planned roles, resources, software, and documents. AI integration and policy enforcement are not implemented in this branch.
