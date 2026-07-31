@@ -29,6 +29,8 @@ This repository currently contains the initial project scaffold and minimal Fast
 
 The onboarding domain contracts and deterministic mock catalogs now exist in the backend.
 
+Deterministic access-policy validation now exists for onboarding recommendations.
+
 ## Backend Development
 
 Create and activate a Python 3.14 virtual environment:
