@@ -42,3 +42,15 @@ AI recommendations are untrusted inputs. The policy engine validates them using 
 ## Deterministic Onboarding Planner
 
 The planner creates a safe baseline onboarding plan from a verified employee role. Software, documents and access recommendations come from deterministic templates and catalogs, and every access recommendation is validated by the policy engine. Employee notes do not influence planning or authorization. AI integration and real provisioning are not implemented yet.
+
+## Onboarding API
+
+`POST /onboarding/plans/generate` creates a deterministic onboarding plan for a verified employee profile. The endpoint currently uses deterministic planning only; no access is provisioned, and returned policy decisions still require human approval.
+
+Example request:
+
+```powershell
+curl.exe -X POST http://localhost:8000/onboarding/plans/generate `
+  -H "Content-Type: application/json" `
+  -d '{"employee_id":"emp-001","full_name":"Aylin Demir","work_email":"aylin.demir@example.com","role_id":"backend-junior","department":"Engineering","team_id":"backend","seniority":"junior","operating_system":"windows","location":"Istanbul","manager_id":"mgr-001","notes":null}'
+```
