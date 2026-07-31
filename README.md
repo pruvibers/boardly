@@ -12,7 +12,7 @@ Core security principle: "AI recommends, policy engine restricts, humans approve
 
 - Frontend: Next.js, TypeScript, Tailwind CSS
 - Frontend runtime: Node.js 20 LTS
-- Backend: Python 3.11, FastAPI
+- Backend: Python 3.14, FastAPI
 - Database: PostgreSQL
 - Local AI: Ollama with Qwen2.5:7b
 - Runtime orchestration: Docker Compose
@@ -25,4 +25,33 @@ Core security principle: "AI recommends, policy engine restricts, humans approve
 - Ollama local model runtime for AI-generated recommendations
 - Deterministic policy engine for restricting sensitive actions before human approval
 
-This repository currently contains only the initial scaffold.
+This repository currently contains the initial project scaffold and minimal FastAPI backend foundation.
+
+## Backend Development
+
+Create and activate a Python 3.14 virtual environment:
+
+```powershell
+cd backend
+python --version
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+```
+
+Install backend dependencies:
+
+```powershell
+pip install -r requirements.txt
+```
+
+Run backend tests:
+
+```powershell
+pytest
+```
+
+Start the backend API:
+
+```powershell
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
