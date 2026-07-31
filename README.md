@@ -33,6 +33,8 @@ Deterministic access-policy validation now exists for onboarding recommendations
 
 Deterministic onboarding-plan generation now exists for verified employee profiles.
 
+The deterministic onboarding planner is now exposed through a FastAPI endpoint.
+
 ## Backend Development
 
 Create and activate a Python 3.14 virtual environment:
