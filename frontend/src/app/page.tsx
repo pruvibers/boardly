@@ -1,10 +1,5 @@
-import { BoardlyShell } from "@/components/boardly-shell";
-import { BoardlyWorkspace } from "@/components/boardly-workspace";
+import { redirect } from "next/navigation";
 
 export default function Home() {
-  return (
-    <BoardlyShell>
-      <BoardlyWorkspace />
-    </BoardlyShell>
-  );
+  redirect("/workspace");
 }

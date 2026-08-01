@@ -30,7 +30,10 @@ export function NewcomerPortalPreview({
 
   return (
     <div className="space-y-6">
-      <header className="overflow-hidden rounded-2xl bg-[#5B21B6] text-white shadow-soft">
+      <header
+        id="onboard-overview"
+        className="scroll-mt-36 overflow-hidden rounded-2xl bg-[#5B21B6] text-white shadow-soft"
+      >
         <div className="p-6 sm:p-8 lg:p-10">
           <p className="text-xs font-bold uppercase tracking-[0.14em] text-purple-200">
             Your onboarding plan
@@ -91,7 +94,11 @@ export function NewcomerPortalPreview({
         </div>
       </section>
 
-      <section aria-labelledby="first-week-checklist-title">
+      <section
+        id="onboard-tasks"
+        aria-labelledby="first-week-checklist-title"
+        className="scroll-mt-36"
+      >
         <div className="mb-4">
           <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#6E36E4]">
             First-week checklist
@@ -109,7 +116,11 @@ export function NewcomerPortalPreview({
         </div>
       </section>
 
-      <section aria-labelledby="tools-resources-title">
+      <section
+        id="onboard-resources"
+        aria-labelledby="tools-resources-title"
+        className="scroll-mt-36"
+      >
         <div className="mb-4">
           <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#6E36E4]">
             Tools and resources
@@ -144,7 +155,11 @@ export function NewcomerPortalPreview({
         </div>
       </section>
 
-      <section aria-labelledby="access-requests-title">
+      <section
+        id="onboard-access"
+        aria-labelledby="access-requests-title"
+        className="scroll-mt-36"
+      >
         <div className="mb-4">
           <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#6E36E4]">
             Access requests
@@ -177,7 +192,11 @@ export function NewcomerPortalPreview({
         )}
       </section>
 
-      <section aria-labelledby="device-setup-title">
+      <section
+        id="onboard-setup"
+        aria-labelledby="device-setup-title"
+        className="scroll-mt-36"
+      >
         <div className="mb-4">
           <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#6E36E4]">
             Device setup

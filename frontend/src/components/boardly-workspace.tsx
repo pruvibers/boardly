@@ -1,15 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import Link from "next/link";
 import { EmployeeForm } from "@/components/employee-form";
-import { SelectedPlanViewer } from "@/components/selected-plan-viewer";
-import type { PlannedOnboardingResult } from "@/lib/types";
+import { OnboardingResult } from "@/components/onboarding-result";
+import { useOnboardingSession } from "@/components/onboarding-session-provider";
 
 export function BoardlyWorkspace() {
-  const [results, setResults] = useState<PlannedOnboardingResult[]>([]);
-  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(
-    null,
-  );
+  const {
+    results,
+    selectedEmployeeId,
+    selectedResult,
+    recordPlan,
+    selectEmployee,
+  } = useOnboardingSession();
 
   const metrics = results.reduce(
     (totals, result) => {
@@ -28,24 +31,6 @@ export function BoardlyWorkspace() {
       blockedDecisions: 0,
     },
   );
-
-  function handlePlanGenerated(result: PlannedOnboardingResult) {
-    const employeeId = result.plan.employee.employee_id;
-
-    setResults((currentResults) => [
-      result,
-      ...currentResults.filter(
-        (currentResult) =>
-        currentResult.plan.employee.employee_id !== employeeId,
-      ),
-    ]);
-    setSelectedEmployeeId(employeeId);
-  }
-
-  const selectedResult =
-    results.find(
-      (result) => result.plan.employee.employee_id === selectedEmployeeId,
-    ) ?? null;
 
   return (
     <div className="space-y-8">
@@ -118,35 +103,40 @@ export function BoardlyWorkspace() {
       </section>
 
       <EmployeeForm
-        onPlanGenerated={handlePlanGenerated}
+        onPlanGenerated={recordPlan}
         showGeneratedResult={false}
       />
 
       <section
-        id="selected-plan"
-        aria-labelledby="selected-plan-title"
-        className="scroll-mt-24"
+        id="operator-review"
+        aria-labelledby="operator-review-title"
+        className="scroll-mt-24 space-y-5"
       >
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#6E36E4]">
+            Operator review
+          </p>
+          <h2
+            id="operator-review-title"
+            className="mt-2 text-2xl font-bold tracking-tight text-gray-950"
+          >
+            Detailed policy output
+          </h2>
+          <p className="mt-2 text-sm leading-6 text-gray-500">
+            Review the complete deterministic plan and policy decisions before
+            any human-approved action is taken.
+          </p>
+        </div>
         {selectedResult ? (
-          <SelectedPlanViewer
+          <OnboardingResult
             key={JSON.stringify(selectedResult)}
             result={selectedResult}
           />
         ) : (
           <div className="rounded-2xl border border-dashed border-purple-200 bg-white px-6 py-12 text-center shadow-soft sm:px-8">
-            <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#6E36E4]">
-              Newcomer experience
-            </p>
-            <h2
-              id="selected-plan-title"
-              className="mt-3 text-2xl font-bold text-gray-950"
-            >
-              A newcomer plan will appear here
-            </h2>
-            <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-gray-500">
-              Generate a successful onboarding plan to preview the real tasks,
-              resources, access review, and device setup prepared for that
-              employee.
+            <p className="mx-auto max-w-xl text-sm leading-6 text-gray-500">
+              Generate a successful onboarding plan to review its complete
+              operator and policy output here.
             </p>
           </div>
         )}
@@ -173,7 +163,7 @@ export function BoardlyWorkspace() {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="min-w-[1220px] w-full border-collapse text-left text-sm">
+          <table className="min-w-[1420px] w-full border-collapse text-left text-sm">
             <caption className="sr-only">
               Successful onboarding plans generated during this session
             </caption>
@@ -204,7 +194,7 @@ export function BoardlyWorkspace() {
                   Blocked
                 </th>
                 <th scope="col" className="px-6 py-3.5 sm:pr-8">
-                  Experience
+                  Views
                 </th>
               </tr>
             </thead>
@@ -254,15 +244,22 @@ export function BoardlyWorkspace() {
                         {blockedDecisionCount}
                       </td>
                       <td className="whitespace-nowrap px-6 py-4 sm:pr-8">
-                        <a
-                          href="#selected-plan"
-                          onClick={() =>
-                            setSelectedEmployeeId(employee.employee_id)
-                          }
-                          className="inline-flex rounded-lg border border-purple-200 bg-purple-50 px-3 py-2 text-xs font-bold text-[#6E36E4] transition hover:border-purple-300 hover:bg-purple-100 focus:outline-none focus:ring-2 focus:ring-[#6E36E4]/30 focus:ring-offset-2"
-                        >
-                          Open newcomer view
-                        </a>
+                        <div className="flex items-center gap-2">
+                          <a
+                            href="#operator-review"
+                            onClick={() => selectEmployee(employee.employee_id)}
+                            className="inline-flex rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-bold text-gray-700 transition hover:border-purple-200 hover:text-[#6E36E4] focus:outline-none focus:ring-2 focus:ring-[#6E36E4]/30 focus:ring-offset-2"
+                          >
+                            Open operator review
+                          </a>
+                          <Link
+                            href="/onboard"
+                            onClick={() => selectEmployee(employee.employee_id)}
+                            className="inline-flex rounded-lg border border-purple-200 bg-purple-50 px-3 py-2 text-xs font-bold text-[#6E36E4] transition hover:border-purple-300 hover:bg-purple-100 focus:outline-none focus:ring-2 focus:ring-[#6E36E4]/30 focus:ring-offset-2"
+                          >
+                            Preview newcomer experience
+                          </Link>
+                        </div>
                       </td>
                     </tr>
                   );
