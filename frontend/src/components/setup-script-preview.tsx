@@ -40,13 +40,13 @@ export function SetupScriptPreviewPanel({
   }
 
   return (
-    <section className="rounded-md border border-line p-4">
+    <section className="rounded-xl border border-gray-200 p-4">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h3 className="text-lg font-semibold text-ink">
+          <h3 className="text-lg font-bold text-gray-950">
             Safe setup-script preview
           </h3>
-          <p className="mt-2 text-sm leading-6 text-slate">
+          <p className="mt-2 text-sm leading-6 text-gray-600">
             Boardly previews this script but never executes it.
           </p>
         </div>
@@ -55,12 +55,12 @@ export function SetupScriptPreviewPanel({
             type="button"
             disabled={isPending}
             onClick={handleGeneratePreview}
-            className="rounded-md bg-teal px-4 py-3 text-sm font-semibold text-white transition hover:bg-teal/90 focus:outline-none focus:ring-2 focus:ring-teal/30 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate"
+            className="rounded-xl bg-[#6E36E4] px-4 py-3 text-sm font-bold text-white transition hover:bg-[#5B21B6] focus:outline-none focus:ring-2 focus:ring-[#6E36E4]/30 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-gray-400"
           >
-            {isPending ? "Generating preview…" : "Generate safe setup preview"}
+            {isPending ? "Generating preview\u2026" : "Generate safe setup preview"}
           </button>
         ) : (
-          <p className="rounded-md border border-line bg-cloud px-4 py-3 text-sm leading-6 text-slate">
+          <p className="rounded-xl border border-gray-200 bg-[#F9FAFC] px-4 py-3 text-sm leading-6 text-gray-600">
             The MVP currently supports Windows PowerShell setup previews only.
           </p>
         )}
@@ -70,7 +70,7 @@ export function SetupScriptPreviewPanel({
         <p
           role="alert"
           aria-live="polite"
-          className="mt-4 rounded-md border border-ochre/40 bg-ochre/10 px-4 py-3 text-sm leading-6 text-ink"
+          className="mt-4 rounded-xl border border-[#FBBF24]/40 bg-[#FFFBEB] px-4 py-3 text-sm leading-6 text-gray-950"
         >
           {error}
         </p>
@@ -108,10 +108,10 @@ function PreviewDetails({ preview }: { preview: SetupScriptPreview }) {
       </div>
 
       <section>
-        <h4 className="text-base font-semibold text-ink">
+        <h4 className="text-base font-bold text-gray-950">
           PowerShell preview content
         </h4>
-        <pre className="mt-3 max-w-full overflow-x-auto rounded-md border border-line bg-ink p-4 text-sm leading-6 text-mist">
+        <pre className="mt-3 max-w-full overflow-x-auto rounded-xl border border-gray-200 bg-gray-950 p-4 text-sm leading-6 text-gray-100">
           <code>{preview.content}</code>
         </pre>
       </section>
@@ -121,21 +121,21 @@ function PreviewDetails({ preview }: { preview: SetupScriptPreview }) {
 
 function StringList({ title, values }: { title: string; values: string[] }) {
   return (
-    <section className="rounded-md border border-line bg-cloud p-4">
-      <h4 className="text-base font-semibold text-ink">{title}</h4>
+    <section className="rounded-xl border border-gray-200 bg-[#F9FAFC] p-4">
+      <h4 className="text-base font-bold text-gray-950">{title}</h4>
       {values.length > 0 ? (
         <ul className="mt-3 space-y-2">
           {values.map((value) => (
             <li
               key={value}
-              className="break-words rounded-md border border-line bg-white px-3 py-2 text-sm text-slate"
+              className="break-words rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-600"
             >
               {value}
             </li>
           ))}
         </ul>
       ) : (
-        <p className="mt-3 text-sm leading-6 text-slate">No items returned.</p>
+        <p className="mt-3 text-sm leading-6 text-gray-600">No items returned.</p>
       )}
     </section>
   );
@@ -144,8 +144,8 @@ function StringList({ title, values }: { title: string; values: string[] }) {
 function Detail({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <dt className="font-medium text-ink">{label}</dt>
-      <dd className="mt-1 break-words text-slate">{value}</dd>
+      <dt className="font-semibold text-gray-950">{label}</dt>
+      <dd className="mt-1 break-words text-gray-600">{value}</dd>
     </div>
   );
 }

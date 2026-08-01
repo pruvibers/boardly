@@ -34,3 +34,7 @@ NEXT_PUBLIC_API_URL=http://localhost:8000
 The employee form now calls the onboarding-plan API and renders deterministic onboarding results.
 
 Setup-preview integration uses `POST /onboarding/setup-script/preview`. Preview generation requires explicit user action after a plan is generated, supports Windows PowerShell only in this MVP, and Boardly never executes returned scripts.
+
+## UI Foundation
+
+The UI now uses the Boardly dashboard visual foundation. The underlying onboarding and setup-preview flows remain connected to the real backend, and unsupported prototype screens were intentionally not included.
