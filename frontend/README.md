@@ -47,8 +47,12 @@ The newcomer experience is the primary generated-plan presentation and uses real
 
 ## Application Routes
 
-- `/workspace` is the HR/IT control plane for verified employee entry, plan generation and detailed operator review.
-- `/onboard` is the isolated newcomer experience and does not include workspace controls or raw operator output.
-- `/` redirects to `/workspace`.
+- `/onboard` is the default application entry and isolated newcomer experience. Its UI contains no direct navigation to the HR/IT workspace.
+- `/workspace` is the separate backstage HR/IT demo control plane for verified employee entry, plan generation and detailed operator review.
+- `/` redirects to `/onboard`.
 
-Client-side navigation between `/workspace` and `/onboard` preserves the selected plan in React memory because both routes share the root onboarding session provider. Refreshing either route clears the session naturally. `/onboard` is currently a session preview rather than a persistent invitation link, and authentication has not been implemented yet.
+For a presentation, `/workspace` can remain open in a separate presenter tab while HR/IT generates a plan and opens its newcomer preview. Client-side navigation preserves the selected plan in React memory because both routes share the root onboarding session provider, while refreshing either route clears the session naturally. This is route and UI separation only: authentication and role-based authorization are not implemented, and production separation requires authentication and RBAC. Setup scripts remain preview-only and are never executed by Boardly.
+
+## Phase 2D Newcomer Journey
+
+`/onboard` now supports session-only checklist interaction, with progress and deterministic next-step guidance derived from real checklist data. Task completion does not persist after refresh. Resources remain planned requirements rather than installed or accessible items, and access statuses remain review-only. Setup generation is still preview-only and Windows-only, with advanced commands hidden by default for newcomers. Authentication and persistent invitation flows are not implemented.

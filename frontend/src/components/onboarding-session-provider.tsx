@@ -10,12 +10,21 @@ import {
 } from "react";
 import type { PlannedOnboardingResult } from "@/lib/types";
 
+type TaskCompletionOverrides = Record<string, Record<string, boolean>>;
+
 type OnboardingSessionContextValue = {
   results: PlannedOnboardingResult[];
   selectedEmployeeId: string | null;
   selectedResult: PlannedOnboardingResult | null;
+  taskCompletionOverrides: TaskCompletionOverrides;
   recordPlan: (result: PlannedOnboardingResult) => void;
   selectEmployee: (employeeId: string) => void;
+  clearSelection: () => void;
+  setTaskCompleted: (
+    employeeId: string,
+    taskId: string,
+    completed: boolean,
+  ) => void;
 };
 
 const OnboardingSessionContext =
@@ -30,6 +39,8 @@ export function OnboardingSessionProvider({
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(
     null,
   );
+  const [taskCompletionOverrides, setTaskCompletionOverrides] =
+    useState<TaskCompletionOverrides>({});
 
   const selectedResult =
     results.find(
@@ -46,6 +57,15 @@ export function OnboardingSessionProvider({
           currentResult.plan.employee.employee_id !== employeeId,
       ),
     ]);
+    setTaskCompletionOverrides((currentOverrides) => {
+      if (!(employeeId in currentOverrides)) {
+        return currentOverrides;
+      }
+
+      const nextOverrides = { ...currentOverrides };
+      delete nextOverrides[employeeId];
+      return nextOverrides;
+    });
     setSelectedEmployeeId(employeeId);
   }, []);
 
@@ -62,20 +82,54 @@ export function OnboardingSessionProvider({
     [results],
   );
 
+  const clearSelection = useCallback(() => {
+    setSelectedEmployeeId(null);
+  }, []);
+
+  const setTaskCompleted = useCallback(
+    (employeeId: string, taskId: string, completed: boolean) => {
+      const employeeResult = results.find(
+        (result) => result.plan.employee.employee_id === employeeId,
+      );
+
+      if (
+        !employeeResult ||
+        !employeeResult.plan.checklist.some((item) => item.id === taskId)
+      ) {
+        return;
+      }
+
+      setTaskCompletionOverrides((currentOverrides) => ({
+        ...currentOverrides,
+        [employeeId]: {
+          ...currentOverrides[employeeId],
+          [taskId]: completed,
+        },
+      }));
+    },
+    [results],
+  );
+
   const value = useMemo(
     () => ({
       results,
       selectedEmployeeId,
       selectedResult,
+      taskCompletionOverrides,
       recordPlan,
       selectEmployee,
+      clearSelection,
+      setTaskCompleted,
     }),
     [
+      clearSelection,
       recordPlan,
       results,
       selectEmployee,
       selectedEmployeeId,
       selectedResult,
+      setTaskCompleted,
+      taskCompletionOverrides,
     ],
   );
 

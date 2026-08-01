@@ -11,7 +11,7 @@ export function BoardlyShell({ children }: BoardlyShellProps) {
       <aside className="fixed inset-y-0 left-0 z-20 hidden w-72 border-r border-gray-200/80 bg-white px-5 py-6 lg:flex lg:flex-col">
         <BoardlyLogo size="md" />
         <p className="mt-3 text-sm leading-6 text-gray-500">
-          Secure onboarding workspace
+          HR/IT demo control plane
         </p>
 
         <nav aria-label="Primary" className="mt-10 space-y-1.5">
@@ -105,7 +105,7 @@ export function BoardlyShell({ children }: BoardlyShellProps) {
             <BoardlyLogo size="sm" className="lg:hidden" />
             <div className="hidden lg:block">
               <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#6E36E4]">
-                Onboarding workspace
+                HR/IT demo control plane
               </p>
               <h1 className="mt-1 text-2xl font-bold tracking-tight text-gray-950">
                 Secure AI employee onboarding

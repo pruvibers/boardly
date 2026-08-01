@@ -1,15 +1,16 @@
-import Link from "next/link";
 import type { ReactNode } from "react";
 import { BoardlyLogo } from "@/components/boardly-logo";
 
 type NewcomerShellProps = {
   children: ReactNode;
   showSectionNavigation: boolean;
+  onEndPreview?: () => void;
 };
 
 export function NewcomerShell({
   children,
   showSectionNavigation,
+  onEndPreview,
 }: NewcomerShellProps) {
   return (
     <div className="min-h-screen bg-[#F8F8FC] text-gray-950">
@@ -30,12 +31,15 @@ export function NewcomerShell({
             <span className="rounded-lg border border-purple-200 bg-purple-50 px-2.5 py-1.5 text-xs font-bold text-[#6E36E4]">
               Session preview
             </span>
-            <Link
-              href="/workspace"
-              className="hidden text-sm font-semibold text-gray-600 transition hover:text-[#6E36E4] focus:outline-none focus:ring-2 focus:ring-[#6E36E4]/30 focus:ring-offset-2 sm:inline-flex"
-            >
-              Exit session preview
-            </Link>
+            {onEndPreview ? (
+              <button
+                type="button"
+                onClick={onEndPreview}
+                className="inline-flex rounded-lg px-3 py-2 text-sm font-semibold text-gray-600 transition hover:bg-purple-50 hover:text-[#6E36E4] focus:outline-none focus:ring-2 focus:ring-[#6E36E4]/30 focus:ring-offset-2"
+              >
+                End preview
+              </button>
+            ) : null}
           </div>
         </div>
 

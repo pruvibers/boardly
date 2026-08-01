@@ -1,15 +1,17 @@
 "use client";
 
-import Link from "next/link";
 import { NewcomerPortalPreview } from "@/components/newcomer-portal-preview";
 import { NewcomerShell } from "@/components/newcomer-shell";
 import { useOnboardingSession } from "@/components/onboarding-session-provider";
 
 export function NewcomerExperienceRoute() {
-  const { selectedResult } = useOnboardingSession();
+  const { clearSelection, selectedResult } = useOnboardingSession();
 
   return (
-    <NewcomerShell showSectionNavigation={selectedResult !== null}>
+    <NewcomerShell
+      showSectionNavigation={selectedResult !== null}
+      onEndPreview={selectedResult ? clearSelection : undefined}
+    >
       {selectedResult ? (
         <NewcomerPortalPreview
           key={JSON.stringify(selectedResult)}
@@ -21,19 +23,16 @@ export function NewcomerExperienceRoute() {
             Newcomer session preview
           </p>
           <h1 className="mt-3 text-3xl font-bold tracking-tight text-gray-950">
-            No onboarding plan is available
+            Your onboarding plan is not available
           </h1>
           <p className="mx-auto mt-4 max-w-xl text-sm leading-6 text-gray-600 sm:text-base">
-            No verified onboarding plan is available in this browser session.
-            Session plans are held only in memory, so refreshing the page clears
-            them.
+            Your onboarding plan is not available in this browser session. Ask
+            your HR or IT team to prepare your verified onboarding plan.
           </p>
-          <Link
-            href="/workspace"
-            className="mt-6 inline-flex rounded-xl bg-[#6E36E4] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#5B21B6] focus:outline-none focus:ring-2 focus:ring-[#6E36E4]/30 focus:ring-offset-2"
-          >
-            Generate a verified plan
-          </Link>
+          <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-gray-500">
+            Session-only plans and progress are cleared when this page is
+            refreshed.
+          </p>
         </section>
       )}
     </NewcomerShell>

@@ -6,10 +6,12 @@ import type { SetupScriptPreview, VerifiedEmployeeProfile } from "@/lib/types";
 
 type SetupScriptPreviewPanelProps = {
   employee: VerifiedEmployeeProfile;
+  audience?: "operator" | "newcomer";
 };
 
 export function SetupScriptPreviewPanel({
   employee,
+  audience = "operator",
 }: SetupScriptPreviewPanelProps) {
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState("");
@@ -44,10 +46,14 @@ export function SetupScriptPreviewPanel({
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h3 className="text-lg font-bold text-gray-950">
-            Safe setup-script preview
+            {audience === "newcomer"
+              ? "Review your device setup"
+              : "Safe setup-script preview"}
           </h3>
           <p className="mt-2 text-sm leading-6 text-gray-600">
-            Boardly previews this script but never executes it.
+            {audience === "newcomer"
+              ? "Generate a technical preview that a person can review before any setup work begins."
+              : "Boardly previews this script but never executes it."}
           </p>
         </div>
         {isWindows ? (
@@ -57,7 +63,11 @@ export function SetupScriptPreviewPanel({
             onClick={handleGeneratePreview}
             className="rounded-xl bg-[#6E36E4] px-4 py-3 text-sm font-bold text-white transition hover:bg-[#5B21B6] focus:outline-none focus:ring-2 focus:ring-[#6E36E4]/30 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-gray-400"
           >
-            {isPending ? "Generating preview\u2026" : "Generate safe setup preview"}
+            {isPending
+              ? "Generating preview\u2026"
+              : audience === "newcomer"
+                ? "Generate technical preview"
+                : "Generate safe setup preview"}
           </button>
         ) : (
           <p className="rounded-xl border border-gray-200 bg-[#F9FAFC] px-4 py-3 text-sm leading-6 text-gray-600">
@@ -65,6 +75,8 @@ export function SetupScriptPreviewPanel({
           </p>
         )}
       </div>
+
+      {audience === "newcomer" && !preview ? <NewcomerSetupProcess /> : null}
 
       {error ? (
         <p
@@ -76,8 +88,84 @@ export function SetupScriptPreviewPanel({
         </p>
       ) : null}
 
-      {preview ? <PreviewDetails preview={preview} /> : null}
+      {preview ? (
+        audience === "newcomer" ? (
+          <NewcomerPreviewDetails preview={preview} />
+        ) : (
+          <PreviewDetails preview={preview} />
+        )
+      ) : null}
     </section>
+  );
+}
+
+function NewcomerSetupProcess() {
+  return (
+    <ol className="mt-5 grid gap-3 text-sm leading-6 text-gray-700 md:grid-cols-3">
+      <li className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+        <span className="font-bold text-[#6E36E4]">1.</span> Review the software
+        planned for your device.
+      </li>
+      <li className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+        <span className="font-bold text-[#6E36E4]">2.</span> Check any manual
+        steps that require IT approval.
+      </li>
+      <li className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+        <span className="font-bold text-[#6E36E4]">3.</span> Generate a technical
+        preview for human review.
+      </li>
+    </ol>
+  );
+}
+
+function NewcomerPreviewDetails({ preview }: { preview: SetupScriptPreview }) {
+  return (
+    <div className="mt-5 space-y-5">
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="rounded-xl border border-purple-100 bg-purple-50 p-4">
+          <p className="text-sm font-bold text-[#5B21B6]">Human review</p>
+          <p className="mt-1 text-sm text-purple-900">
+            {preview.requires_human_review ? "Required" : "Not required"}
+          </p>
+        </div>
+        <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+          <p className="text-sm font-bold text-gray-950">Automatic execution</p>
+          <p className="mt-1 text-sm text-gray-600">
+            {preview.auto_execute ? "Enabled" : "Disabled"}
+          </p>
+        </div>
+      </div>
+
+      <div className="grid gap-5 lg:grid-cols-2">
+        <StringList title="Planned software IDs" values={preview.software_ids} />
+        <StringList title="Manual steps" values={preview.manual_steps} />
+      </div>
+
+      <details className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+        <summary className="cursor-pointer text-sm font-bold text-gray-950 focus:outline-none focus:ring-2 focus:ring-[#6E36E4]/30">
+          Advanced technical preview
+        </summary>
+        <div className="mt-5 space-y-5 border-t border-gray-200 pt-5">
+          <dl className="grid gap-3 text-sm sm:grid-cols-3">
+            <Detail label="Filename" value={preview.filename} />
+            <Detail label="Shell" value={preview.shell} />
+            <Detail label="Operating system" value={preview.operating_system} />
+          </dl>
+          <StringList
+            title="Executable commands"
+            values={preview.executable_commands}
+          />
+          <section>
+            <h4 className="text-base font-bold text-gray-950">
+              PowerShell preview content
+            </h4>
+            <pre className="mt-3 max-w-full overflow-x-auto rounded-xl border border-gray-200 bg-gray-950 p-4 text-sm leading-6 text-gray-100">
+              <code>{preview.content}</code>
+            </pre>
+          </section>
+        </div>
+      </details>
+    </div>
   );
 }
 
