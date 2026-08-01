@@ -104,6 +104,7 @@ class VerifiedEmployeeProfile(BaseModel):
     @field_validator("work_email")
     @classmethod
     def work_email_must_have_basic_company_format(cls, value: str) -> str:
+        value = value.strip().lower()
         local_part, separator, domain = value.partition("@")
         domain_labels = domain.split(".")
         if (

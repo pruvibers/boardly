@@ -252,7 +252,7 @@ function toEmployeePayload(form: VerifiedEmployeeProfile): VerifiedEmployeeProfi
   return {
     employee_id: form.employee_id.trim(),
     full_name: form.full_name.trim(),
-    work_email: form.work_email.trim(),
+    work_email: form.work_email.trim().toLowerCase(),
     role_id: form.role_id,
     department: form.department.trim(),
     team_id: form.team_id.trim(),

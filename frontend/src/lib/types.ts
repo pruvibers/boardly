@@ -91,6 +91,24 @@ export type PlannedOnboardingResult = {
   policy_decisions: PolicyDecision[];
 };
 
+export type DemoItTicket = {
+  submitted: boolean;
+  category: "software" | "access" | "setup";
+  subject: string;
+  description: string;
+  note: string;
+};
+
+export type PersistedDemoState = {
+  task_completion_overrides: Record<string, boolean>;
+  document_review_state: Record<string, boolean>;
+  document_receipt_state: Record<string, boolean>;
+  demo_acknowledgment_signer_names: Record<string, string>;
+  software_confirmations: Record<string, boolean>;
+  demo_it_tickets: Record<string, DemoItTicket>;
+  setup_preview_generated: boolean;
+};
+
 export type SetupScriptPreview = {
   employee_id: string;
   operating_system: OperatingSystem;

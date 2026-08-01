@@ -43,6 +43,8 @@ The frontend now submits employee profiles and renders deterministic onboarding 
 
 Windows setup-script previews can now be requested from the onboarding result UI.
 
+The demo application now provides role-separated HR/IT and newcomer routes, signed HTTP-only demo sessions, and local SQLite persistence for plans and demo progress.
+
 ## Backend Development
 
 Create and activate a Python 3.14 virtual environment:
@@ -69,5 +71,11 @@ pytest
 Start the backend API:
 
 ```powershell
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
+
+## Demo Security Scope
+
+Boardly's signed HTTP-only cookie guards Next.js demo routes only. This is hackathon demo authentication, not production authentication, and the cookie does not authorize FastAPI endpoints. FastAPI remains a local demo API that must not be exposed publicly; bind it to `127.0.0.1` for presentations.
+
+Production requires backend authorization on every protected endpoint, real identity management, RBAC, CSRF review, secret management, and hardened session handling.

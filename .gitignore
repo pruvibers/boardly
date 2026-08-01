@@ -16,6 +16,10 @@ pip-wheel-metadata/
 .coverage
 coverage.xml
 htmlcov/
+backend/data/*.sqlite3
+backend/data/*.sqlite3-*
+backend/data/*.sqlite
+backend/data/*.db
 
 # Node.js
 node_modules/

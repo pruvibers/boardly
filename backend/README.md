@@ -28,7 +28,7 @@ pytest
 Start the API:
 
 ```powershell
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
 ## Onboarding Domain
@@ -70,3 +70,26 @@ curl.exe -X POST http://localhost:8000/onboarding/setup-script/preview `
   -H "Content-Type: application/json" `
   -d '{"employee_id":"emp-001","full_name":"Aylin Demir","work_email":"aylin.demir@example.com","role_id":"backend-junior","department":"Engineering","team_id":"backend","seniority":"junior","operating_system":"windows","location":"Istanbul","manager_id":"mgr-001","notes":null}'
 ```
+
+## SQLite Demo Persistence
+
+Boardly stores the latest validated plan and local demo progress in SQLite. `BOARDLY_DB_PATH` may override the database location; the safe default is `backend/data/boardly-demo.sqlite3`, and generated database files are ignored by Git. Tables are initialized automatically.
+
+Persisted endpoints:
+
+- `GET /onboarding/plans`
+- `GET /onboarding/plans/{employee_id}`
+- `GET /onboarding/plans/{employee_id}/demo-state`
+- `PUT /onboarding/plans/{employee_id}/demo-state`
+
+Demo state includes checklist, document, acknowledgment, software, local ticket, and setup-preview progress. Submitted IDs are validated against the employee's real deterministic plan. Regenerating one employee replaces that plan and resets only that employee's demo state. Normalized work emails are unique across employees.
+
+## Demo Authentication
+
+`POST /demo-auth/login` validates the hackathon credentials used by the Next.js server. Admin credentials are `admin@boardly.demo` / `123`; newcomers use the normalized work email on a persisted plan with password `123`. The backend resolves the newcomer employee ID without exposing it in the form.
+
+This is hackathon demo authentication, not production authentication. The Next.js layer creates a signed HTTP-only cookie that guards Next.js demo routes. The cookie does not authorize FastAPI endpoints.
+
+FastAPI remains a local demo API and must not be exposed publicly. Bind it to `127.0.0.1` for presentations. Production requires backend authorization on every protected endpoint, real identity management, RBAC, CSRF review, secret management, and hardened session handling.
+
+Demo IT tickets remain in SQLite and are not sent externally. Acknowledgments are non-binding, generated PDF summaries are demo-only, no access is provisioned, and setup scripts are never executed or downloaded.

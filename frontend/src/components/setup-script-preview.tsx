@@ -2,16 +2,23 @@
 
 import { useState } from "react";
 import { ApiClientError, generateSetupScriptPreview } from "@/lib/api";
+import type { DemoItTicket } from "@/components/onboarding-session-provider";
 import type { SetupScriptPreview, VerifiedEmployeeProfile } from "@/lib/types";
 
 type SetupScriptPreviewPanelProps = {
   employee: VerifiedEmployeeProfile;
   audience?: "operator" | "newcomer";
+  onPreviewGenerated?: (preview: SetupScriptPreview) => void;
+  onCreateManualStepTicket?: (manualStep: string) => void;
+  demoItTickets?: Record<string, DemoItTicket>;
 };
 
 export function SetupScriptPreviewPanel({
   employee,
   audience = "operator",
+  onPreviewGenerated,
+  onCreateManualStepTicket,
+  demoItTickets = {},
 }: SetupScriptPreviewPanelProps) {
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState("");
@@ -29,6 +36,7 @@ export function SetupScriptPreviewPanel({
     try {
       const nextPreview = await generateSetupScriptPreview(employee);
       setPreview(nextPreview);
+      onPreviewGenerated?.(nextPreview);
     } catch (caughtError) {
       setPreview(null);
       setError(
@@ -90,7 +98,11 @@ export function SetupScriptPreviewPanel({
 
       {preview ? (
         audience === "newcomer" ? (
-          <NewcomerPreviewDetails preview={preview} />
+          <NewcomerPreviewDetails
+            preview={preview}
+            onCreateManualStepTicket={onCreateManualStepTicket}
+            demoItTickets={demoItTickets}
+          />
         ) : (
           <PreviewDetails preview={preview} />
         )
@@ -118,41 +130,67 @@ function NewcomerSetupProcess() {
   );
 }
 
-function NewcomerPreviewDetails({ preview }: { preview: SetupScriptPreview }) {
+function NewcomerPreviewDetails({
+  preview,
+  onCreateManualStepTicket,
+  demoItTickets,
+}: {
+  preview: SetupScriptPreview;
+  onCreateManualStepTicket?: (manualStep: string) => void;
+  demoItTickets: Record<string, DemoItTicket>;
+}) {
   return (
     <div className="mt-5 space-y-5">
+      <section aria-labelledby="setup-safety-title">
+        <h4 id="setup-safety-title" className="text-base font-bold text-gray-950">
+          Safety overview
+        </h4>
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="rounded-xl border border-purple-100 bg-purple-50 p-4">
-          <p className="text-sm font-bold text-[#5B21B6]">Human review</p>
+          <p className="text-sm font-bold text-[#5B21B6]">Human review required</p>
           <p className="mt-1 text-sm text-purple-900">
             {preview.requires_human_review ? "Required" : "Not required"}
           </p>
         </div>
         <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-          <p className="text-sm font-bold text-gray-950">Automatic execution</p>
+          <p className="text-sm font-bold text-gray-950">Automatic execution disabled</p>
           <p className="mt-1 text-sm text-gray-600">
             {preview.auto_execute ? "Enabled" : "Disabled"}
           </p>
         </div>
       </div>
+        <p className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-900">
+          Boardly does not execute this script.
+        </p>
+      </section>
 
       <div className="grid gap-5 lg:grid-cols-2">
-        <StringList title="Planned software IDs" values={preview.software_ids} />
-        <StringList title="Manual steps" values={preview.manual_steps} />
+        <StringList title="Planned software" values={preview.software_ids} />
+        <ManualStepList
+          values={preview.manual_steps}
+          onCreateTicket={onCreateManualStepTicket}
+          demoItTickets={demoItTickets}
+        />
       </div>
+
+      <section aria-labelledby="preview-metadata-title" className="rounded-xl border border-gray-200 bg-white p-4">
+        <h4 id="preview-metadata-title" className="text-base font-bold text-gray-950">
+          Generated-preview metadata
+        </h4>
+        <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-3">
+          <Detail label="Filename" value={preview.filename} />
+          <Detail label="Shell" value={preview.shell} />
+          <Detail label="Operating system" value={preview.operating_system} />
+        </dl>
+      </section>
 
       <details className="rounded-xl border border-gray-200 bg-gray-50 p-4">
         <summary className="cursor-pointer text-sm font-bold text-gray-950 focus:outline-none focus:ring-2 focus:ring-[#6E36E4]/30">
           Advanced technical preview
         </summary>
         <div className="mt-5 space-y-5 border-t border-gray-200 pt-5">
-          <dl className="grid gap-3 text-sm sm:grid-cols-3">
-            <Detail label="Filename" value={preview.filename} />
-            <Detail label="Shell" value={preview.shell} />
-            <Detail label="Operating system" value={preview.operating_system} />
-          </dl>
           <StringList
-            title="Executable commands"
+            title="Command review list"
             values={preview.executable_commands}
           />
           <section>
@@ -166,6 +204,57 @@ function NewcomerPreviewDetails({ preview }: { preview: SetupScriptPreview }) {
         </div>
       </details>
     </div>
+  );
+}
+
+function ManualStepList({
+  values,
+  onCreateTicket,
+  demoItTickets,
+}: {
+  values: string[];
+  onCreateTicket?: (manualStep: string) => void;
+  demoItTickets: Record<string, DemoItTicket>;
+}) {
+  return (
+    <section className="rounded-xl border border-gray-200 bg-[#F9FAFC] p-4">
+      <h4 className="text-base font-bold text-gray-950">Manual steps</h4>
+      {values.length > 0 ? (
+        <ul className="mt-3 space-y-3">
+          {values.map((value) => {
+            const ticket = demoItTickets[`setup:${value}`];
+            return (
+              <li
+                key={value}
+                className="rounded-xl border border-gray-200 bg-white p-3"
+              >
+                <p className="break-words text-sm leading-6 text-gray-600">
+                  {value}
+                </p>
+                {ticket?.submitted ? (
+                  <p className="mt-2 text-xs font-bold text-emerald-700">
+                    Demo ticket submitted locally
+                  </p>
+                ) : null}
+                {onCreateTicket ? (
+                  <button
+                    type="button"
+                    onClick={() => onCreateTicket(value)}
+                    className="mt-3 rounded-lg border border-purple-200 px-3 py-2 text-xs font-bold text-[#6E36E4] transition hover:bg-purple-50 focus:outline-none focus:ring-2 focus:ring-[#6E36E4]/30"
+                  >
+                    Create demo IT ticket
+                  </button>
+                ) : null}
+              </li>
+            );
+          })}
+        </ul>
+      ) : (
+        <p className="mt-3 text-sm leading-6 text-gray-600">
+          No manual steps returned.
+        </p>
+      )}
+    </section>
   );
 }
 
