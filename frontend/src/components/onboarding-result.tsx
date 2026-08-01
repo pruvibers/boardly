@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type {
   AccessRecommendation,
   ChecklistItem,
@@ -25,19 +26,19 @@ export function OnboardingResult({ result }: OnboardingResultProps) {
   return (
     <section
       aria-labelledby="onboarding-result-title"
-      className="space-y-5 rounded-lg border border-line bg-white p-5 shadow-soft sm:p-6"
+      className="space-y-5 rounded-2xl border border-gray-200/80 bg-white p-6 shadow-soft sm:p-8"
     >
       <div>
-        <p className="text-sm font-semibold uppercase tracking-[0.08em] text-teal">
+        <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#6E36E4]">
           Generated plan
         </p>
         <h2
           id="onboarding-result-title"
-          className="mt-2 text-2xl font-semibold text-ink"
+          className="mt-2 text-2xl font-bold tracking-tight text-gray-950"
         >
           Deterministic onboarding result
         </h2>
-        <p className="mt-3 rounded-md border border-line bg-cloud px-4 py-3 text-sm font-medium leading-6 text-slate">
+        <p className="mt-3 rounded-xl border border-purple-100 bg-purple-50 px-4 py-3 text-sm font-semibold leading-6 text-[#5B21B6]">
           Recommendations are not provisioned automatically. Human approval is
           required.
         </p>
@@ -108,7 +109,7 @@ function AccessRecommendationCard({
   policyDecision: PolicyDecision | undefined;
 }) {
   return (
-    <article className="rounded-md border border-line bg-cloud p-4">
+    <article className="rounded-xl border border-gray-200 bg-[#F9FAFC] p-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h4 className="text-base font-semibold text-ink">
@@ -121,7 +122,9 @@ function AccessRecommendationCard({
         <div className="flex flex-wrap gap-2">
           <StatusPill label={formatToken(recommendation.status)} tone="teal" />
           <StatusPill
-            label={policyDecision ? formatToken(policyDecision.decision) : "No policy"}
+            label={
+              policyDecision ? formatToken(policyDecision.decision) : "No policy"
+            }
             tone={policyDecision?.decision === "blocked" ? "ochre" : "teal"}
           />
         </div>
@@ -147,8 +150,8 @@ function AccessRecommendationCard({
         />
       </dl>
 
-      <div className="mt-4 rounded-md bg-white p-3 text-sm text-slate">
-        <p className="font-semibold text-ink">Required approvers</p>
+      <div className="mt-4 rounded-xl bg-white p-3 text-sm text-gray-600">
+        <p className="font-semibold text-gray-950">Required approvers</p>
         <p className="mt-1">
           {policyDecision && policyDecision.required_approvers.length > 0
             ? policyDecision.required_approvers.map(formatToken).join(", ")
@@ -171,12 +174,12 @@ function ChecklistPanel({
       {items.length > 0 ? (
         <ul className="space-y-3">
           {items.map((item) => (
-            <li key={item.id} className="rounded-md border border-line p-3">
-              <p className="text-sm font-semibold text-ink">{item.title}</p>
-              <p className="mt-1 text-sm leading-6 text-slate">
+            <li key={item.id} className="rounded-xl border border-gray-200 p-3">
+              <p className="text-sm font-semibold text-gray-950">{item.title}</p>
+              <p className="mt-1 text-sm leading-6 text-gray-600">
                 {item.description}
               </p>
-              <p className="mt-2 text-xs font-semibold uppercase tracking-[0.08em] text-teal">
+              <p className="mt-2 text-xs font-bold uppercase tracking-[0.14em] text-[#6E36E4]">
                 {item.completed ? "Completed" : "Planned work"}
               </p>
             </li>
@@ -197,7 +200,7 @@ function IdList({ title, values }: { title: string; values: string[] }) {
           {values.map((value) => (
             <li
               key={value}
-              className="break-words rounded-md border border-line bg-cloud px-3 py-2 text-sm text-slate"
+              className="break-words rounded-xl border border-gray-200 bg-[#F9FAFC] px-3 py-2 text-sm text-gray-600"
             >
               {value}
             </li>
@@ -215,11 +218,11 @@ function Panel({
   children,
 }: {
   title: string;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
-    <section className="rounded-md border border-line p-4">
-      <h3 className="text-lg font-semibold text-ink">{title}</h3>
+    <section className="rounded-xl border border-gray-200 p-4">
+      <h3 className="text-lg font-bold text-gray-950">{title}</h3>
       <div className="mt-3">{children}</div>
     </section>
   );
@@ -228,8 +231,8 @@ function Panel({
 function Detail({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <dt className="font-medium text-ink">{label}</dt>
-      <dd className="mt-1 break-words text-slate">{value}</dd>
+      <dt className="font-semibold text-gray-950">{label}</dt>
+      <dd className="mt-1 break-words text-gray-600">{value}</dd>
     </div>
   );
 }
@@ -243,8 +246,8 @@ function StatusPill({
 }) {
   const className =
     tone === "teal"
-      ? "border-teal/30 bg-teal/10 text-teal"
-      : "border-ochre/30 bg-ochre/10 text-ochre";
+      ? "border-purple-200 bg-purple-50 text-[#6E36E4]"
+      : "border-[#FBBF24]/40 bg-[#FFFBEB] text-[#B45309]";
 
   return (
     <span
@@ -256,7 +259,7 @@ function StatusPill({
 }
 
 function EmptyState({ label }: { label: string }) {
-  return <p className="text-sm leading-6 text-slate">{label}</p>;
+  return <p className="text-sm leading-6 text-gray-600">{label}</p>;
 }
 
 function formatToken(value: string) {

@@ -2,14 +2,23 @@
 
 import { useState } from "react";
 import { ApiClientError, generateSetupScriptPreview } from "@/lib/api";
+import type { DemoItTicket } from "@/components/onboarding-session-provider";
 import type { SetupScriptPreview, VerifiedEmployeeProfile } from "@/lib/types";
 
 type SetupScriptPreviewPanelProps = {
   employee: VerifiedEmployeeProfile;
+  audience?: "operator" | "newcomer";
+  onPreviewGenerated?: (preview: SetupScriptPreview) => void;
+  onCreateManualStepTicket?: (manualStep: string) => void;
+  demoItTickets?: Record<string, DemoItTicket>;
 };
 
 export function SetupScriptPreviewPanel({
   employee,
+  audience = "operator",
+  onPreviewGenerated,
+  onCreateManualStepTicket,
+  demoItTickets = {},
 }: SetupScriptPreviewPanelProps) {
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState("");
@@ -27,6 +36,7 @@ export function SetupScriptPreviewPanel({
     try {
       const nextPreview = await generateSetupScriptPreview(employee);
       setPreview(nextPreview);
+      onPreviewGenerated?.(nextPreview);
     } catch (caughtError) {
       setPreview(null);
       setError(
@@ -40,14 +50,18 @@ export function SetupScriptPreviewPanel({
   }
 
   return (
-    <section className="rounded-md border border-line p-4">
+    <section className="rounded-xl border border-gray-200 p-4">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h3 className="text-lg font-semibold text-ink">
-            Safe setup-script preview
+          <h3 className="text-lg font-bold text-gray-950">
+            {audience === "newcomer"
+              ? "Review your device setup"
+              : "Safe setup-script preview"}
           </h3>
-          <p className="mt-2 text-sm leading-6 text-slate">
-            Boardly previews this script but never executes it.
+          <p className="mt-2 text-sm leading-6 text-gray-600">
+            {audience === "newcomer"
+              ? "Generate a technical preview that a person can review before any setup work begins."
+              : "Boardly previews this script but never executes it."}
           </p>
         </div>
         {isWindows ? (
@@ -55,28 +69,191 @@ export function SetupScriptPreviewPanel({
             type="button"
             disabled={isPending}
             onClick={handleGeneratePreview}
-            className="rounded-md bg-teal px-4 py-3 text-sm font-semibold text-white transition hover:bg-teal/90 focus:outline-none focus:ring-2 focus:ring-teal/30 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate"
+            className="rounded-xl bg-[#6E36E4] px-4 py-3 text-sm font-bold text-white transition hover:bg-[#5B21B6] focus:outline-none focus:ring-2 focus:ring-[#6E36E4]/30 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-gray-400"
           >
-            {isPending ? "Generating preview…" : "Generate safe setup preview"}
+            {isPending
+              ? "Generating preview\u2026"
+              : audience === "newcomer"
+                ? "Generate technical preview"
+                : "Generate safe setup preview"}
           </button>
         ) : (
-          <p className="rounded-md border border-line bg-cloud px-4 py-3 text-sm leading-6 text-slate">
+          <p className="rounded-xl border border-gray-200 bg-[#F9FAFC] px-4 py-3 text-sm leading-6 text-gray-600">
             The MVP currently supports Windows PowerShell setup previews only.
           </p>
         )}
       </div>
 
+      {audience === "newcomer" && !preview ? <NewcomerSetupProcess /> : null}
+
       {error ? (
         <p
           role="alert"
           aria-live="polite"
-          className="mt-4 rounded-md border border-ochre/40 bg-ochre/10 px-4 py-3 text-sm leading-6 text-ink"
+          className="mt-4 rounded-xl border border-[#FBBF24]/40 bg-[#FFFBEB] px-4 py-3 text-sm leading-6 text-gray-950"
         >
           {error}
         </p>
       ) : null}
 
-      {preview ? <PreviewDetails preview={preview} /> : null}
+      {preview ? (
+        audience === "newcomer" ? (
+          <NewcomerPreviewDetails
+            preview={preview}
+            onCreateManualStepTicket={onCreateManualStepTicket}
+            demoItTickets={demoItTickets}
+          />
+        ) : (
+          <PreviewDetails preview={preview} />
+        )
+      ) : null}
+    </section>
+  );
+}
+
+function NewcomerSetupProcess() {
+  return (
+    <ol className="mt-5 grid gap-3 text-sm leading-6 text-gray-700 md:grid-cols-3">
+      <li className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+        <span className="font-bold text-[#6E36E4]">1.</span> Review the software
+        planned for your device.
+      </li>
+      <li className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+        <span className="font-bold text-[#6E36E4]">2.</span> Check any manual
+        steps that require IT approval.
+      </li>
+      <li className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+        <span className="font-bold text-[#6E36E4]">3.</span> Generate a technical
+        preview for human review.
+      </li>
+    </ol>
+  );
+}
+
+function NewcomerPreviewDetails({
+  preview,
+  onCreateManualStepTicket,
+  demoItTickets,
+}: {
+  preview: SetupScriptPreview;
+  onCreateManualStepTicket?: (manualStep: string) => void;
+  demoItTickets: Record<string, DemoItTicket>;
+}) {
+  return (
+    <div className="mt-5 space-y-5">
+      <section aria-labelledby="setup-safety-title">
+        <h4 id="setup-safety-title" className="text-base font-bold text-gray-950">
+          Safety overview
+        </h4>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="rounded-xl border border-purple-100 bg-purple-50 p-4">
+          <p className="text-sm font-bold text-[#5B21B6]">Human review required</p>
+          <p className="mt-1 text-sm text-purple-900">
+            {preview.requires_human_review ? "Required" : "Not required"}
+          </p>
+        </div>
+        <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+          <p className="text-sm font-bold text-gray-950">Automatic execution disabled</p>
+          <p className="mt-1 text-sm text-gray-600">
+            {preview.auto_execute ? "Enabled" : "Disabled"}
+          </p>
+        </div>
+      </div>
+        <p className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-900">
+          Boardly does not execute this script.
+        </p>
+      </section>
+
+      <div className="grid gap-5 lg:grid-cols-2">
+        <StringList title="Planned software" values={preview.software_ids} />
+        <ManualStepList
+          values={preview.manual_steps}
+          onCreateTicket={onCreateManualStepTicket}
+          demoItTickets={demoItTickets}
+        />
+      </div>
+
+      <section aria-labelledby="preview-metadata-title" className="rounded-xl border border-gray-200 bg-white p-4">
+        <h4 id="preview-metadata-title" className="text-base font-bold text-gray-950">
+          Generated-preview metadata
+        </h4>
+        <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-3">
+          <Detail label="Filename" value={preview.filename} />
+          <Detail label="Shell" value={preview.shell} />
+          <Detail label="Operating system" value={preview.operating_system} />
+        </dl>
+      </section>
+
+      <details className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+        <summary className="cursor-pointer text-sm font-bold text-gray-950 focus:outline-none focus:ring-2 focus:ring-[#6E36E4]/30">
+          Advanced technical preview
+        </summary>
+        <div className="mt-5 space-y-5 border-t border-gray-200 pt-5">
+          <StringList
+            title="Command review list"
+            values={preview.executable_commands}
+          />
+          <section>
+            <h4 className="text-base font-bold text-gray-950">
+              PowerShell preview content
+            </h4>
+            <pre className="mt-3 max-w-full overflow-x-auto rounded-xl border border-gray-200 bg-gray-950 p-4 text-sm leading-6 text-gray-100">
+              <code>{preview.content}</code>
+            </pre>
+          </section>
+        </div>
+      </details>
+    </div>
+  );
+}
+
+function ManualStepList({
+  values,
+  onCreateTicket,
+  demoItTickets,
+}: {
+  values: string[];
+  onCreateTicket?: (manualStep: string) => void;
+  demoItTickets: Record<string, DemoItTicket>;
+}) {
+  return (
+    <section className="rounded-xl border border-gray-200 bg-[#F9FAFC] p-4">
+      <h4 className="text-base font-bold text-gray-950">Manual steps</h4>
+      {values.length > 0 ? (
+        <ul className="mt-3 space-y-3">
+          {values.map((value) => {
+            const ticket = demoItTickets[`setup:${value}`];
+            return (
+              <li
+                key={value}
+                className="rounded-xl border border-gray-200 bg-white p-3"
+              >
+                <p className="break-words text-sm leading-6 text-gray-600">
+                  {value}
+                </p>
+                {ticket?.submitted ? (
+                  <p className="mt-2 text-xs font-bold text-emerald-700">
+                    Demo ticket submitted locally
+                  </p>
+                ) : null}
+                {onCreateTicket ? (
+                  <button
+                    type="button"
+                    onClick={() => onCreateTicket(value)}
+                    className="mt-3 rounded-lg border border-purple-200 px-3 py-2 text-xs font-bold text-[#6E36E4] transition hover:bg-purple-50 focus:outline-none focus:ring-2 focus:ring-[#6E36E4]/30"
+                  >
+                    Create demo IT ticket
+                  </button>
+                ) : null}
+              </li>
+            );
+          })}
+        </ul>
+      ) : (
+        <p className="mt-3 text-sm leading-6 text-gray-600">
+          No manual steps returned.
+        </p>
+      )}
     </section>
   );
 }
@@ -108,10 +285,10 @@ function PreviewDetails({ preview }: { preview: SetupScriptPreview }) {
       </div>
 
       <section>
-        <h4 className="text-base font-semibold text-ink">
+        <h4 className="text-base font-bold text-gray-950">
           PowerShell preview content
         </h4>
-        <pre className="mt-3 max-w-full overflow-x-auto rounded-md border border-line bg-ink p-4 text-sm leading-6 text-mist">
+        <pre className="mt-3 max-w-full overflow-x-auto rounded-xl border border-gray-200 bg-gray-950 p-4 text-sm leading-6 text-gray-100">
           <code>{preview.content}</code>
         </pre>
       </section>
@@ -121,21 +298,21 @@ function PreviewDetails({ preview }: { preview: SetupScriptPreview }) {
 
 function StringList({ title, values }: { title: string; values: string[] }) {
   return (
-    <section className="rounded-md border border-line bg-cloud p-4">
-      <h4 className="text-base font-semibold text-ink">{title}</h4>
+    <section className="rounded-xl border border-gray-200 bg-[#F9FAFC] p-4">
+      <h4 className="text-base font-bold text-gray-950">{title}</h4>
       {values.length > 0 ? (
         <ul className="mt-3 space-y-2">
           {values.map((value) => (
             <li
               key={value}
-              className="break-words rounded-md border border-line bg-white px-3 py-2 text-sm text-slate"
+              className="break-words rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-600"
             >
               {value}
             </li>
           ))}
         </ul>
       ) : (
-        <p className="mt-3 text-sm leading-6 text-slate">No items returned.</p>
+        <p className="mt-3 text-sm leading-6 text-gray-600">No items returned.</p>
       )}
     </section>
   );
@@ -144,8 +321,8 @@ function StringList({ title, values }: { title: string; values: string[] }) {
 function Detail({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <dt className="font-medium text-ink">{label}</dt>
-      <dd className="mt-1 break-words text-slate">{value}</dd>
+      <dt className="font-semibold text-gray-950">{label}</dt>
+      <dd className="mt-1 break-words text-gray-600">{value}</dd>
     </div>
   );
 }

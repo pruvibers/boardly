@@ -1,0 +1,196 @@
+from pathlib import Path
+
+import pytest
+
+from app.domain.models import VerifiedEmployeeProfile
+from app.persistence.database import BoardlyDatabase, DuplicateWorkEmailError
+from app.persistence.models import DemoItTicket, PersistedDemoState
+from app.planner.service import PlannedOnboardingResult, generate_onboarding_plan
+from app.setup_scripts.service import COMPANY_VPN_MANUAL_STEP
+
+
+def make_result(
+    employee_id: str,
+    work_email: str,
+    full_name: str = "Aylin Demir",
+) -> PlannedOnboardingResult:
+    return generate_onboarding_plan(
+        VerifiedEmployeeProfile(
+            employee_id=employee_id,
+            full_name=full_name,
+            work_email=work_email,
+            role_id="backend-junior",
+            department="Engineering",
+            team_id="backend",
+            seniority="junior",
+            operating_system="windows",
+            location="Istanbul",
+            manager_id="mgr-001",
+            notes=None,
+        )
+    )
+
+
+def make_database(tmp_path: Path) -> BoardlyDatabase:
+    return BoardlyDatabase(tmp_path / "boardly.sqlite3")
+
+
+def test_plan_insert_and_retrieval(tmp_path: Path) -> None:
+    database = make_database(tmp_path)
+    result = make_result("persist-001", "persist-001@example.com")
+
+    database.save_plan(result)
+
+    assert database.get_plan("persist-001") == result
+
+
+def test_plan_replacement_by_employee_id(tmp_path: Path) -> None:
+    database = make_database(tmp_path)
+    database.save_plan(make_result("persist-001", "first@example.com"))
+    replacement = make_result(
+        "persist-001", "replacement@example.com", "Replacement Name"
+    )
+
+    database.save_plan(replacement)
+
+    assert database.list_plans() == [replacement]
+    assert database.get_plan_by_email("replacement@example.com") == replacement
+    assert database.get_plan_by_email("first@example.com") is None
+
+
+def test_plan_listing_is_newest_updated_first(tmp_path: Path) -> None:
+    database = make_database(tmp_path)
+    first = make_result("persist-001", "first@example.com")
+    second = make_result("persist-002", "second@example.com")
+    database.save_plan(first)
+    database.save_plan(second)
+
+    assert database.list_plans() == [second, first]
+
+
+def test_duplicate_email_for_another_employee_is_rejected(tmp_path: Path) -> None:
+    database = make_database(tmp_path)
+    database.save_plan(make_result("persist-001", "shared@example.com"))
+
+    with pytest.raises(DuplicateWorkEmailError):
+        database.save_plan(make_result("persist-002", "SHARED@example.com"))
+
+
+def test_same_employee_regeneration_with_same_email_is_accepted(
+    tmp_path: Path,
+) -> None:
+    database = make_database(tmp_path)
+    database.save_plan(make_result("persist-001", "same@example.com"))
+
+    database.save_plan(
+        make_result("persist-001", "SAME@example.com", "Updated Employee")
+    )
+
+    assert database.get_plan("persist-001") is not None
+
+
+def test_demo_state_save_and_retrieval(tmp_path: Path) -> None:
+    database = make_database(tmp_path)
+    result = make_result("persist-001", "state@example.com")
+    database.save_plan(result)
+    task_id = result.plan.checklist[0].id
+    document_id = result.plan.document_ids[0]
+    software_id = result.plan.software_ids[0]
+    access_id = result.plan.access_recommendations[0].resource_id
+    state = PersistedDemoState(
+        task_completion_overrides={task_id: True},
+        document_review_state={document_id: True},
+        document_receipt_state={document_id: True},
+        demo_acknowledgment_signer_names={document_id: "Aylin Demir"},
+        software_confirmations={software_id: True},
+        demo_it_tickets={
+            f"access:{access_id}": DemoItTicket(
+                submitted=True,
+                category="access",
+                subject="Access question",
+                description="Please review this demo access question.",
+                note="",
+            ),
+            f"setup:{COMPANY_VPN_MANUAL_STEP}": DemoItTicket(
+                submitted=True,
+                category="setup",
+                subject="Setup help",
+                description="Please review this manual setup step.",
+                note="",
+            ),
+        },
+        setup_preview_generated=True,
+    )
+
+    database.save_demo_state("persist-001", state)
+
+    assert database.get_demo_state("persist-001") == state
+
+
+@pytest.mark.parametrize(
+    ("field_name", "value"),
+    [
+        ("task_completion_overrides", {"unknown-task": True}),
+        ("document_review_state", {"unknown-document": True}),
+        ("document_receipt_state", {"unknown-document": True}),
+        ("software_confirmations", {"unknown-software": True}),
+    ],
+)
+def test_invalid_demo_state_ids_are_rejected(
+    tmp_path: Path, field_name: str, value: dict[str, bool]
+) -> None:
+    database = make_database(tmp_path)
+    database.save_plan(make_result("persist-001", "invalid@example.com"))
+    state = PersistedDemoState.model_validate({field_name: value})
+
+    with pytest.raises(ValueError):
+        database.save_demo_state("persist-001", state)
+
+
+def test_invalid_ticket_resource_is_rejected(tmp_path: Path) -> None:
+    database = make_database(tmp_path)
+    database.save_plan(make_result("persist-001", "ticket@example.com"))
+    state = PersistedDemoState(
+        demo_it_tickets={
+            "access:unknown-resource": DemoItTicket(
+                submitted=True,
+                category="access",
+                subject="Question",
+                description="Unknown resource question.",
+                note="",
+            )
+        }
+    )
+
+    with pytest.raises(ValueError):
+        database.save_demo_state("persist-001", state)
+
+
+def test_regeneration_resets_only_that_employees_demo_state(
+    tmp_path: Path,
+) -> None:
+    database = make_database(tmp_path)
+    first = make_result("persist-001", "first@example.com")
+    second = make_result("persist-002", "second@example.com")
+    database.save_plan(first)
+    database.save_plan(second)
+    first_state = PersistedDemoState(
+        task_completion_overrides={first.plan.checklist[0].id: True}
+    )
+    second_state = PersistedDemoState(
+        task_completion_overrides={second.plan.checklist[0].id: True}
+    )
+    database.save_demo_state("persist-001", first_state)
+    database.save_demo_state("persist-002", second_state)
+
+    database.save_plan(make_result("persist-001", "first@example.com"))
+
+    assert database.get_demo_state("persist-001") == PersistedDemoState()
+    assert database.get_demo_state("persist-002") == second_state
+
+
+def test_missing_plan_and_demo_state_return_none(tmp_path: Path) -> None:
+    database = make_database(tmp_path)
+
+    assert database.get_plan("missing") is None
+    assert database.get_demo_state("missing") is None

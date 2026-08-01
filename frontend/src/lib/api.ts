@@ -1,5 +1,7 @@
 import type {
+  DemoItTicket,
   OperatingSystem,
+  PersistedDemoState,
   PlannedOnboardingResult,
   SetupScriptPreview,
   VerifiedEmployeeProfile,
@@ -25,7 +27,11 @@ type FastApiErrorBody = {
 export async function generateOnboardingPlan(
   employee: VerifiedEmployeeProfile,
 ): Promise<PlannedOnboardingResult> {
-  const payload = await postJson("/onboarding/plans/generate", employee);
+  const payload = await requestJson(
+    "POST",
+    "/onboarding/plans/generate",
+    employee,
+  );
 
   if (!isPlannedOnboardingResult(payload)) {
     throw new ApiClientError("The backend returned an unexpected response.");
@@ -37,7 +43,11 @@ export async function generateOnboardingPlan(
 export async function generateSetupScriptPreview(
   employee: VerifiedEmployeeProfile,
 ): Promise<SetupScriptPreview> {
-  const payload = await postJson("/onboarding/setup-script/preview", employee);
+  const payload = await requestJson(
+    "POST",
+    "/onboarding/setup-script/preview",
+    employee,
+  );
 
   if (!isSetupScriptPreview(payload)) {
     throw new ApiClientError(
@@ -48,9 +58,68 @@ export async function generateSetupScriptPreview(
   return payload;
 }
 
-async function postJson(
+export async function listPersistedOnboardingPlans(): Promise<
+  PlannedOnboardingResult[]
+> {
+  const payload = await requestJson("GET", "/onboarding/plans");
+  if (
+    !Array.isArray(payload) ||
+    !payload.every(isPlannedOnboardingResult)
+  ) {
+    throw new ApiClientError("The backend returned an unexpected plan list.");
+  }
+  return payload;
+}
+
+export async function getPersistedOnboardingPlan(
+  employeeId: string,
+): Promise<PlannedOnboardingResult> {
+  const payload = await requestJson(
+    "GET",
+    `/onboarding/plans/${encodeURIComponent(employeeId)}`,
+  );
+  if (!isPlannedOnboardingResult(payload)) {
+    throw new ApiClientError("The backend returned an unexpected plan.");
+  }
+  return payload;
+}
+
+export async function getPersistedDemoState(
+  employeeId: string,
+): Promise<PersistedDemoState> {
+  const payload = await requestJson(
+    "GET",
+    `/onboarding/plans/${encodeURIComponent(employeeId)}/demo-state`,
+  );
+  if (!isPersistedDemoState(payload)) {
+    throw new ApiClientError(
+      "The backend returned unexpected demo progress.",
+    );
+  }
+  return payload;
+}
+
+export async function savePersistedDemoState(
+  employeeId: string,
+  state: PersistedDemoState,
+): Promise<PersistedDemoState> {
+  const payload = await requestJson(
+    "PUT",
+    `/onboarding/plans/${encodeURIComponent(employeeId)}/demo-state`,
+    state,
+  );
+  if (!isPersistedDemoState(payload)) {
+    throw new ApiClientError(
+      "The backend returned unexpected saved demo progress.",
+    );
+  }
+  return payload;
+}
+
+async function requestJson(
+  method: "GET" | "POST" | "PUT",
   path: string,
-  body: VerifiedEmployeeProfile,
+  body?: VerifiedEmployeeProfile | PersistedDemoState,
 ): Promise<unknown> {
   const baseUrl = process.env.NEXT_PUBLIC_API_URL;
   if (!baseUrl) {
@@ -60,11 +129,10 @@ async function postJson(
   let response: Response;
   try {
     response = await fetch(`${baseUrl.replace(/\/+$/, "")}${path}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(body),
+      method,
+      headers: body ? { "Content-Type": "application/json" } : undefined,
+      body: body ? JSON.stringify(body) : undefined,
+      cache: "no-store",
     });
   } catch {
     throw new ApiClientError("Unable to reach the Boardly backend.");
@@ -140,7 +208,72 @@ function isPlannedOnboardingResult(
     return false;
   }
 
-  return isRecord(value.plan) && Array.isArray(value.policy_decisions);
+  if (!isRecord(value.plan) || !Array.isArray(value.policy_decisions)) {
+    return false;
+  }
+
+  const plan = value.plan;
+  return (
+    isRecord(plan.employee) &&
+    typeof plan.employee.employee_id === "string" &&
+    typeof plan.employee.work_email === "string" &&
+    Array.isArray(plan.access_recommendations) &&
+    isStringArray(plan.software_ids) &&
+    isStringArray(plan.document_ids) &&
+    isStringArray(plan.repository_ids) &&
+    Array.isArray(plan.checklist) &&
+    typeof plan.welcome_summary === "string"
+  );
+}
+
+function isPersistedDemoState(value: unknown): value is PersistedDemoState {
+  if (!isRecord(value)) {
+    return false;
+  }
+  return (
+    isBooleanRecord(value.task_completion_overrides) &&
+    isBooleanRecord(value.document_review_state) &&
+    isBooleanRecord(value.document_receipt_state) &&
+    isStringRecord(value.demo_acknowledgment_signer_names) &&
+    isBooleanRecord(value.software_confirmations) &&
+    isDemoTicketRecord(value.demo_it_tickets) &&
+    typeof value.setup_preview_generated === "boolean"
+  );
+}
+
+function isBooleanRecord(value: unknown): value is Record<string, boolean> {
+  return (
+    isRecord(value) &&
+    Object.values(value).every((item) => typeof item === "boolean")
+  );
+}
+
+function isStringRecord(value: unknown): value is Record<string, string> {
+  return (
+    isRecord(value) &&
+    Object.values(value).every((item) => typeof item === "string")
+  );
+}
+
+function isDemoTicketRecord(
+  value: unknown,
+): value is Record<string, DemoItTicket> {
+  return isRecord(value) && Object.values(value).every(isDemoItTicket);
+}
+
+function isDemoItTicket(value: unknown): value is DemoItTicket {
+  if (!isRecord(value)) {
+    return false;
+  }
+  return (
+    typeof value.submitted === "boolean" &&
+    (value.category === "software" ||
+      value.category === "access" ||
+      value.category === "setup") &&
+    typeof value.subject === "string" &&
+    typeof value.description === "string" &&
+    typeof value.note === "string"
+  );
 }
 
 function isSetupScriptPreview(value: unknown): value is SetupScriptPreview {
