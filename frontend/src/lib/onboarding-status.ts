@@ -26,9 +26,9 @@ export function deriveOnboardingMetrics(
     result.plan.document_ids,
     state.document_review_state,
   );
-  const documentsReceived = countTrue(
+  const demoSummariesReceived = countTrue(
     result.plan.document_ids,
-    state.document_receipt_state,
+    state.demo_summary_received,
   );
   const acknowledgments = result.plan.document_ids.filter(
     (id) => Boolean(state.demo_acknowledgment_signer_names[id]),
@@ -63,7 +63,7 @@ export function deriveOnboardingMetrics(
     weekOneTotal: weekOne.length,
     documentsReviewed,
     documentsTotal: result.plan.document_ids.length,
-    documentsReceived,
+    demoSummariesReceived,
     acknowledgments,
     softwareConfirmed,
     softwareTotal: result.plan.software_ids.length,
@@ -121,7 +121,7 @@ export function createEmptyDemoState(): PersistedDemoState {
   return {
     task_completion_overrides: {},
     document_review_state: {},
-    document_receipt_state: {},
+    demo_summary_received: {},
     demo_acknowledgment_signer_names: {},
     software_confirmations: {},
     demo_it_tickets: {},

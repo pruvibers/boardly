@@ -23,7 +23,9 @@ export async function POST(request: Request) {
   }
 
   const backendUrl =
-    process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+    process.env.BOARDLY_BACKEND_URL ??
+    process.env.NEXT_PUBLIC_API_URL ??
+    "http://localhost:8000";
   let backendResponse: Response;
   try {
     backendResponse = await fetch(

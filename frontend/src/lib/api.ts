@@ -1,4 +1,7 @@
 import type {
+  BuddyAction,
+  BuddyResponse,
+  BuddySurface,
   DemoItTicket,
   OperatingSystem,
   PersistedDemoState,
@@ -96,12 +99,13 @@ export async function getPersistedDemoState(
     "GET",
     `/onboarding/plans/${encodeURIComponent(employeeId)}/demo-state`,
   );
-  if (!isPersistedDemoState(payload)) {
+  const state = parsePersistedDemoState(payload);
+  if (!state) {
     throw new ApiClientError(
       "The backend returned unexpected demo progress.",
     );
   }
-  return payload;
+  return state;
 }
 
 export async function savePersistedDemoState(
@@ -113,9 +117,45 @@ export async function savePersistedDemoState(
     `/onboarding/plans/${encodeURIComponent(employeeId)}/demo-state`,
     state,
   );
-  if (!isPersistedDemoState(payload)) {
+  const savedState = parsePersistedDemoState(payload);
+  if (!savedState) {
     throw new ApiClientError(
       "The backend returned unexpected saved demo progress.",
+    );
+  }
+  return savedState;
+}
+
+export async function askBoardlyBuddy(
+  employeeId: string,
+  question: string,
+  currentSurface: BuddySurface,
+): Promise<BuddyResponse> {
+  let response: Response;
+  try {
+    response = await fetch(
+      `/api/onboarding/${encodeURIComponent(employeeId)}/buddy`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          question,
+          current_surface: currentSurface,
+        }),
+        cache: "no-store",
+      },
+    );
+  } catch {
+    throw new ApiClientError("Unable to reach JedAI.");
+  }
+
+  const payload = await readJsonPayload(response);
+  if (!response.ok) {
+    throw new ApiClientError(extractErrorMessage(payload));
+  }
+  if (!isBuddyResponse(payload)) {
+    throw new ApiClientError(
+      "JedAI returned an unexpected response.",
     );
   }
   return payload;
@@ -236,19 +276,43 @@ function isPlannedOnboardingResult(
   );
 }
 
-function isPersistedDemoState(value: unknown): value is PersistedDemoState {
+function parsePersistedDemoState(
+  value: unknown,
+): PersistedDemoState | null {
   if (!isRecord(value)) {
-    return false;
+    return null;
   }
-  return (
-    isBooleanRecord(value.task_completion_overrides) &&
-    isBooleanRecord(value.document_review_state) &&
-    isBooleanRecord(value.document_receipt_state) &&
-    isStringRecord(value.demo_acknowledgment_signer_names) &&
-    isBooleanRecord(value.software_confirmations) &&
-    isDemoTicketRecord(value.demo_it_tickets) &&
-    typeof value.setup_preview_generated === "boolean"
-  );
+  const summaryReceipts =
+    value.demo_summary_received !== undefined
+      ? isBooleanRecord(value.demo_summary_received)
+        ? value.demo_summary_received
+        : null
+      : value.document_receipt_state === undefined
+        ? {}
+        : isBooleanRecord(value.document_receipt_state)
+          ? value.document_receipt_state
+          : null;
+  if (
+    summaryReceipts === null ||
+    !isBooleanRecord(value.task_completion_overrides) ||
+    !isBooleanRecord(value.document_review_state) ||
+    !isStringRecord(value.demo_acknowledgment_signer_names) ||
+    !isBooleanRecord(value.software_confirmations) ||
+    !isDemoTicketRecord(value.demo_it_tickets) ||
+    typeof value.setup_preview_generated !== "boolean"
+  ) {
+    return null;
+  }
+  return {
+    task_completion_overrides: value.task_completion_overrides,
+    document_review_state: value.document_review_state,
+    demo_summary_received: summaryReceipts,
+    demo_acknowledgment_signer_names:
+      value.demo_acknowledgment_signer_names,
+    software_confirmations: value.software_confirmations,
+    demo_it_tickets: value.demo_it_tickets,
+    setup_preview_generated: value.setup_preview_generated,
+  };
 }
 
 function isBooleanRecord(value: unknown): value is Record<string, boolean> {
@@ -302,6 +366,62 @@ function isSetupScriptPreview(value: unknown): value is SetupScriptPreview {
     typeof value.content === "string" &&
     value.requires_human_review === true &&
     value.auto_execute === false
+  );
+}
+
+function isBuddyResponse(value: unknown): value is BuddyResponse {
+  if (!isRecord(value)) {
+    return false;
+  }
+  return (
+    (value.source === "local_model" || value.source === "basic_fallback") &&
+    typeof value.message === "string" &&
+    isBuddyActionArray(value.recommended_actions) &&
+    value.recommended_actions.length <= 3 &&
+    isBuddyActionArray(value.blockers) &&
+    value.blockers.length <= 3 &&
+    typeof value.status_summary === "string" &&
+    (value.missing_information === null ||
+      typeof value.missing_information === "string") &&
+    isStringArray(value.evidence) &&
+    value.evidence.length <= 3
+  );
+}
+
+function isBuddyActionArray(value: unknown): value is BuddyAction[] {
+  return Array.isArray(value) && value.every(isBuddyAction);
+}
+
+function isBuddyAction(value: unknown): value is BuddyAction {
+  if (!isRecord(value)) {
+    return false;
+  }
+  return (
+    typeof value.item_id === "string" &&
+    typeof value.label === "string" &&
+    isBuddyItemKind(value.kind) &&
+    isBuddySurface(value.surface) &&
+    typeof value.status === "string"
+  );
+}
+
+function isBuddyItemKind(value: unknown): value is BuddyAction["kind"] {
+  return (
+    value === "task" ||
+    value === "document" ||
+    value === "software" ||
+    value === "access" ||
+    value === "setup"
+  );
+}
+
+function isBuddySurface(value: unknown): value is BuddySurface {
+  return (
+    value === "overview" ||
+    value === "tasks" ||
+    value === "resources" ||
+    value === "access" ||
+    value === "setup"
   );
 }
 

@@ -7,14 +7,18 @@ import type { SetupScriptPreview, VerifiedEmployeeProfile } from "@/lib/types";
 
 export function SetupHandoffPackage({
   employee,
+  audience = "admin",
 }: {
   employee: VerifiedEmployeeProfile;
+  audience?: "admin" | "newcomer";
 }) {
   const [preview, setPreview] = useState<SetupScriptPreview | null>(null);
   const [acknowledged, setAcknowledged] = useState(false);
   const [isPending, setIsPending] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [error, setError] = useState("");
+  const titleId = `setup-handoff-${audience}-title`;
+  const isNewcomer = audience === "newcomer";
 
   async function preparePreview() {
     if (isPending) return;
@@ -91,11 +95,25 @@ export function SetupHandoffPackage({
   }
 
   return (
-    <section className="border border-[var(--boardly-border)] bg-white shadow-[0_10px_26px_rgba(15,23,42,0.06)]" aria-labelledby="setup-handoff-title">
+    <section
+      className="boardly-surface overflow-hidden"
+      aria-labelledby={titleId}
+    >
       <div className="border-l-4 border-[var(--boardly-warning)] px-5 py-5 sm:px-6">
-        <p className="text-xs font-bold uppercase text-[var(--boardly-warning)]">Admin-only handoff</p>
-        <h3 id="setup-handoff-title" className="mt-2 text-lg font-bold text-[var(--boardly-text)]">Download setup handoff package</h3>
-        <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--boardly-muted)]">Prepare a fresh preview from the backend, review its exact commands, then package it for an authorized IT operator. Boardly never executes the package.</p>
+        <p className="text-xs font-bold uppercase text-[var(--boardly-warning)]">
+          {isNewcomer ? "Setup review handoff" : "Operator-reviewed handoff"}
+        </p>
+        <h3
+          id={titleId}
+          className="mt-2 text-lg font-bold text-[var(--boardly-text)]"
+        >
+          Download setup handoff package
+        </h3>
+        <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--boardly-muted)]">
+          {isNewcomer
+            ? "Prepare a fresh backend preview, review its exact commands, then download the package to share with an authorized operator. Boardly never executes the package."
+            : "Prepare a fresh preview from the backend, review its exact commands, then package it for an authorized operator. Boardly never executes the package."}
+        </p>
       </div>
       <div className="border-t border-[var(--boardly-border)] px-5 py-5 sm:px-6">
         {employee.operating_system === "windows" ? (
@@ -123,7 +141,7 @@ function buildReadme(
   employee: VerifiedEmployeeProfile,
   preview: SetupScriptPreview,
 ) {
-  return `# Boardly setup handoff\n\nEmployee: ${employee.full_name} (${employee.employee_id})\nOperating system: ${preview.operating_system}\n\n## Mandatory review\n\nHuman review is mandatory. Boardly does not execute this script. An authorized IT operator must inspect boardly-setup.ps1 before any execution, which happens outside Boardly. Rollback is not guaranteed; test in an approved environment first.\n\n## Expected software packages\n\n${preview.software_ids.map((id) => `- ${id}`).join("\n") || "- None"}\n\n## Manual steps not covered by the script\n\n${preview.manual_steps.map((step) => `- ${step}`).join("\n") || "- None"}\n\n## Operator review\n\nCompare SHA256SUMS.txt with the included files, inspect every generated command, confirm organizational approval, and follow local change-management procedures before execution outside Boardly.\n`;
+  return `# Boardly setup handoff\n\nEmployee: ${employee.full_name} (${employee.employee_id})\nOperating system: ${preview.operating_system}\n\n## Mandatory review\n\nHuman review is mandatory. Boardly does not execute this script. An authorized operator must inspect boardly-setup.ps1 before any execution, which happens outside Boardly. Rollback is not guaranteed; test in an approved environment first.\n\n## Expected software packages\n\n${preview.software_ids.map((id) => `- ${id}`).join("\n") || "- None"}\n\n## Manual steps not covered by the script\n\n${preview.manual_steps.map((step) => `- ${step}`).join("\n") || "- None"}\n\n## Operator review\n\nCompare SHA256SUMS.txt with the included files, inspect every generated command, confirm organizational approval, and follow local change-management procedures before execution outside Boardly.\n`;
 }
 
 async function sha256(content: Uint8Array<ArrayBufferLike>) {

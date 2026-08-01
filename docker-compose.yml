@@ -1,5 +1,33 @@
-# Planned Docker Compose services:
-# - frontend
-# - backend
-# - postgres
-# - ollama
+services:
+  backend:
+    build:
+      context: ./backend
+    environment:
+      BOARDLY_ALLOWED_ORIGINS: ${BOARDLY_ALLOWED_ORIGINS:-http://localhost:3000}
+      BOARDLY_DB_PATH: ${BOARDLY_DB_PATH:-/app/data/boardly-demo.sqlite3}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:7b}
+      OLLAMA_TIMEOUT_SECONDS: ${OLLAMA_TIMEOUT_SECONDS:-120}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "127.0.0.1:${BACKEND_PORT:-8000}:8000"
+    volumes:
+      - boardly_backend_data:/app/data
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+    depends_on:
+      - backend
+    environment:
+      BOARDLY_BACKEND_URL: ${BOARDLY_BACKEND_URL:-http://backend:8000}
+      BOARDLY_DEMO_SESSION_SECRET: ${BOARDLY_DEMO_SESSION_SECRET:?BOARDLY_DEMO_SESSION_SECRET must be configured with at least 32 characters.}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+    ports:
+      - "127.0.0.1:${FRONTEND_PORT:-3000}:3000"
+
+volumes:
+  boardly_backend_data:

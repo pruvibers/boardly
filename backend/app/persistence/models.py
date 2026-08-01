@@ -1,6 +1,12 @@
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    field_validator,
+    model_validator,
+)
 
 
 class DemoItTicket(BaseModel):
@@ -31,13 +37,34 @@ class PersistedDemoState(BaseModel):
 
     task_completion_overrides: dict[str, bool] = Field(default_factory=dict)
     document_review_state: dict[str, bool] = Field(default_factory=dict)
-    document_receipt_state: dict[str, bool] = Field(default_factory=dict)
+    demo_summary_received: dict[str, bool] = Field(default_factory=dict)
     demo_acknowledgment_signer_names: dict[str, str] = Field(
         default_factory=dict
     )
     software_confirmations: dict[str, bool] = Field(default_factory=dict)
     demo_it_tickets: dict[str, DemoItTicket] = Field(default_factory=dict)
     setup_preview_generated: bool = False
+
+    @model_validator(mode="before")
+    @classmethod
+    def migrate_legacy_document_receipt_state(cls, value: object) -> object:
+        if not isinstance(value, dict):
+            return value
+        payload = dict(value)
+        legacy_receipts = payload.pop("document_receipt_state", None)
+        if legacy_receipts is None:
+            return payload
+        current_receipts = payload.get("demo_summary_received")
+        if current_receipts is None:
+            payload["demo_summary_received"] = legacy_receipts
+        elif isinstance(legacy_receipts, dict) and isinstance(
+            current_receipts, dict
+        ):
+            payload["demo_summary_received"] = {
+                **legacy_receipts,
+                **current_receipts,
+            }
+        return payload
 
     @field_validator("demo_acknowledgment_signer_names")
     @classmethod
@@ -51,3 +78,9 @@ class PersistedDemoState(BaseModel):
                 raise ValueError("demo acknowledgment signer names must not be blank")
             normalized[document_id] = stripped_name
         return normalized
+
+    @model_validator(mode="after")
+    def signed_documents_are_reviewed(self) -> "PersistedDemoState":
+        for document_id in self.demo_acknowledgment_signer_names:
+            self.document_review_state[document_id] = True
+        return self

@@ -68,7 +68,7 @@ export function NewcomerEmployeePage({
     const loading = isRouteLoading || isHydrating;
     return (
       <NewcomerShell>
-        <section className="mx-auto max-w-3xl rounded-2xl border border-purple-100 bg-white px-6 py-12 text-center shadow-soft">
+        <section className="boardly-surface mx-auto max-w-3xl border-purple-100 px-6 py-12 text-center">
           <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#6E36E4]">
             Newcomer onboarding
           </p>
@@ -108,7 +108,7 @@ export function NewcomerEmployeePage({
 
 export function NoActivePreview() {
   return (
-    <section className="mx-auto max-w-4xl overflow-hidden rounded-2xl border border-purple-100 bg-white text-center shadow-soft">
+    <section className="boardly-surface mx-auto max-w-4xl overflow-hidden border-purple-100 text-center">
       <div className="border-b border-purple-100 bg-purple-50/60 px-6 py-8 sm:px-10">
         <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#6E36E4]">
           Newcomer preview

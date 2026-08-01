@@ -13,7 +13,7 @@ export function RoleLanding() {
     <main className="min-h-screen bg-[#F8F8FC] px-5 py-10 text-gray-950 sm:px-8 lg:py-16">
       <div className="mx-auto max-w-5xl">
         <div className="text-center">
-          <BoardlyLogo size="lg" className="justify-center" />
+          <BoardlyLogo variant="landing" className="justify-center" />
           <p className="mt-2 text-xs font-bold uppercase tracking-[0.14em] text-[#6E36E4]">
             Hackathon demo
           </p>
@@ -21,8 +21,8 @@ export function RoleLanding() {
             Choose your Boardly experience
           </h1>
           <p className="mx-auto mt-4 max-w-2xl text-sm leading-6 text-gray-600 sm:text-base">
-            Enter the HR/IT control plane or continue with your personal
-            onboarding experience.
+            Enter the Operations Workspace or continue with your personal
+            newcomer experience.
           </p>
           <p className="mx-auto mt-3 max-w-2xl text-xs leading-5 text-gray-500">
             This sign-in is for the hackathon demonstration and is not
@@ -33,9 +33,9 @@ export function RoleLanding() {
         {selectedRole === null ? (
           <div className="mt-10 grid gap-5 md:grid-cols-2">
             <RoleCard
-              title="HR/IT Admin"
+              title="Operator"
               description="Create verified onboarding plans, review policy decisions, track employee progress and open newcomer previews."
-              action="Enter HR/IT demo"
+              action="Enter Operations Workspace"
               onClick={() => setSelectedRole("admin")}
             />
             <RoleCard
@@ -72,7 +72,7 @@ function RoleCard({
     <button
       type="button"
       onClick={onClick}
-      className="group min-h-64 rounded-2xl border border-purple-100 bg-white p-7 text-left shadow-soft transition hover:-translate-y-0.5 hover:border-purple-300 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-[#6E36E4]/40 focus:ring-offset-2 sm:p-8"
+      className="boardly-surface group min-h-64 border-purple-100 p-7 text-left transition hover:-translate-y-0.5 hover:border-purple-300 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-[#6E36E4]/40 focus:ring-offset-2 sm:p-8"
     >
       <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-100 text-[#6E36E4]">
         <RoleIcon />
@@ -128,7 +128,7 @@ function SignInForm({
   }
 
   return (
-    <section className="mx-auto mt-10 max-w-xl rounded-2xl border border-purple-100 bg-white p-6 shadow-soft sm:p-8">
+    <section className="boardly-surface mx-auto mt-10 max-w-xl border-purple-100 p-6 sm:p-8">
       <button
         type="button"
         onClick={onBack}
@@ -137,11 +137,11 @@ function SignInForm({
         Back
       </button>
       <h2 className="mt-5 text-2xl font-bold text-gray-950">
-        {isAdmin ? "HR/IT Admin sign-in" : "Newcomer sign-in"}
+        {isAdmin ? "Operator sign-in" : "Newcomer sign-in"}
       </h2>
       <p className="mt-2 text-sm leading-6 text-gray-600">
         {isAdmin
-          ? "Use the configured admin demo credentials to enter the control plane."
+          ? "Use the configured operator demo credentials to enter the Operations Workspace."
           : "Use the work email on your persisted onboarding plan and demo password 123."}
       </p>
       {isAdmin ? (
@@ -191,7 +191,7 @@ function SignInForm({
           {isPending
             ? "Signing in…"
             : isAdmin
-              ? "Enter HR/IT demo"
+              ? "Enter Operations Workspace"
               : "Enter newcomer demo"}
         </button>
       </form>

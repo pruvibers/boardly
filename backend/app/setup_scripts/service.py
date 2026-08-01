@@ -38,7 +38,9 @@ UNSAFE_COMMAND_MARKERS = (
 )
 
 COMPANY_VPN_SOFTWARE_ID = "company-vpn-client"
-COMPANY_VPN_MANUAL_STEP = "Company VPN Client requires IT approval before installation."
+COMPANY_VPN_MANUAL_STEP = (
+    "Company VPN Client requires operator approval before installation."
+)
 
 
 def generate_setup_script_preview(

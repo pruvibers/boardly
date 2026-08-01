@@ -144,9 +144,12 @@ def test_company_vpn_client_is_represented_as_manual_step() -> None:
     preview = generate_setup_script_preview(make_employee())
 
     assert preview.manual_steps == [
-        "Company VPN Client requires IT approval before installation."
+        "Company VPN Client requires operator approval before installation."
     ]
-    assert "# Company VPN Client requires IT approval before installation." in preview.content
+    assert (
+        "# Company VPN Client requires operator approval before installation."
+        in preview.content
+    )
 
 
 def test_company_vpn_client_does_not_create_executable_command() -> None:

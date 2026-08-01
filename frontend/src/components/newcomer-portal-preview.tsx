@@ -9,6 +9,7 @@ import {
   useOnboardingSession,
   type DemoItTicket,
 } from "@/components/onboarding-session-provider";
+import { SetupHandoffPackage } from "@/components/setup-handoff-package";
 import { SetupScriptPreviewPanel } from "@/components/setup-script-preview";
 import { employeeJobTitle } from "@/lib/employee-display";
 import type {
@@ -63,11 +64,12 @@ export function NewcomerPortalPreview({
     clearDemoItTicket,
     demoDocumentSignatures,
     demoItTickets,
-    documentReceiptState,
+    demoSummaryReceiptState,
     documentReviewOverrides,
     demoStates,
+    flushEmployeeDemoState,
     registerSetupManualSteps,
-    setDocumentReceived,
+    setDemoSummaryReceived,
     setDocumentReviewed,
     setSoftwareConfirmed,
     setTaskCompleted,
@@ -87,7 +89,8 @@ export function NewcomerPortalPreview({
   const employeeTaskOverrides = taskCompletionOverrides[employeeId] ?? {};
   const employeeDocumentOverrides =
     documentReviewOverrides[employeeId] ?? {};
-  const employeeReceiptState = documentReceiptState[employeeId] ?? {};
+  const employeeSummaryReceiptState =
+    demoSummaryReceiptState[employeeId] ?? {};
   const employeeSignatures = demoDocumentSignatures[employeeId] ?? {};
   const employeeSoftwareConfirmations =
     softwareConfirmations[employeeId] ?? {};
@@ -135,9 +138,9 @@ export function NewcomerPortalPreview({
     plan.document_ids,
     employeeDocumentOverrides,
   );
-  const receivedDocumentCount = countTrueValues(
+  const summaryReceivedCount = countTrueValues(
     plan.document_ids,
-    employeeReceiptState,
+    employeeSummaryReceiptState,
   );
   const signedDocumentCount = plan.document_ids.filter(
     (documentId) => employeeSignatures[documentId]?.signed === true,
@@ -249,7 +252,7 @@ export function NewcomerPortalPreview({
             nextTask={nextTask}
             documentTotal={plan.document_ids.length}
             reviewedDocumentCount={reviewedDocumentCount}
-            receivedDocumentCount={receivedDocumentCount}
+            summaryReceivedCount={summaryReceivedCount}
             signedDocumentCount={signedDocumentCount}
             softwareTotal={plan.software_ids.length}
             confirmedSoftwareCount={confirmedSoftwareCount}
@@ -269,7 +272,7 @@ export function NewcomerPortalPreview({
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-1">
             <OverviewDetailCard
               title="Document actions"
-              value={`${reviewedDocumentCount} reviewed, ${receivedDocumentCount} received`}
+              value={`${reviewedDocumentCount} reviewed, ${summaryReceivedCount} demo summaries received`}
               description={`${signedDocumentCount} non-binding demo acknowledgments are saved locally.`}
               buttonLabel="Review documents"
               onOpen={() => onViewChange("resources")}
@@ -297,26 +300,26 @@ export function NewcomerPortalPreview({
       <section
         id="onboard-tasks"
         tabIndex={0}
-        className="space-y-5 focus:outline-none"
+        className="space-y-6 focus:outline-none"
       >
-        <SectionHeading
-          eyebrow="First-week checklist"
-          id="first-week-checklist-title"
-          title="Work through your tasks"
-          description="Task updates are stored in the local Boardly demo database."
-        />
-        <div className="grid gap-3 sm:grid-cols-3">
-          <CounterCard label="Completed" value={completedTaskCount} />
-          <CounterCard
-            label="Remaining"
-            value={totalTaskCount - completedTaskCount}
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(320px,0.72fr)] lg:items-end">
+          <SectionHeading
+            eyebrow="First-week checklist"
+            id="first-week-checklist-title"
+            title="Work through your tasks"
+            description="Complete each verified task at your own pace. Updates are saved to the local Boardly demo database."
           />
-          <CounterCard label="Total tasks" value={totalTaskCount} />
+          <TaskProgressSummary
+            completed={completedTaskCount}
+            total={totalTaskCount}
+            progress={completionPercentage}
+          />
         </div>
-        <div className="grid gap-5 lg:grid-cols-2">
+        <div className="space-y-5">
           <ChecklistGroup
             title="Day one"
             items={dayOneItems}
+            active={dayOneItems.some(({ completed }) => !completed)}
             onToggle={(taskId, completed) =>
               setTaskCompleted(employeeId, taskId, completed)
             }
@@ -324,6 +327,10 @@ export function NewcomerPortalPreview({
           <ChecklistGroup
             title="Week one"
             items={weekOneItems}
+            active={
+              dayOneItems.every(({ completed }) => completed) &&
+              weekOneItems.some(({ completed }) => !completed)
+            }
             onToggle={(taskId, completed) =>
               setTaskCompleted(employeeId, taskId, completed)
             }
@@ -357,13 +364,13 @@ export function NewcomerPortalPreview({
         <DocumentResourceGroup
           values={plan.document_ids}
           reviewOverrides={employeeDocumentOverrides}
-          receiptState={employeeReceiptState}
+          summaryReceiptState={employeeSummaryReceiptState}
           signatures={employeeSignatures}
           onToggleReview={(documentId, reviewed) =>
             setDocumentReviewed(employeeId, documentId, reviewed)
           }
-          onToggleReceived={(documentId, received) =>
-            setDocumentReceived(employeeId, documentId, received)
+          onToggleSummaryReceived={(documentId, received) =>
+            setDemoSummaryReceived(employeeId, documentId, received)
           }
           onOpenDocument={setSelectedDocumentId}
         />
@@ -497,19 +504,18 @@ export function NewcomerPortalPreview({
           }
           onCreateManualStepTicket={openSetupTicket}
         />
+        <SetupHandoffPackage employee={employee} audience="newcomer" />
       </section>
       ) : null}
 
       <NewcomerGuideDrawer
         result={result}
-        nextTask={nextTask?.item ?? null}
+        currentSurface={activeView}
+        beforeQuestion={() => flushEmployeeDemoState(employeeId)}
+        completedTaskCount={completedTaskCount}
+        totalTaskCount={totalTaskCount}
         blockedAccessCount={blockedAccessCount}
         approvalAccessCount={approvalAccessCount}
-        documentReviewOverrides={employeeDocumentOverrides}
-        documentReceiptState={employeeReceiptState}
-        documentSignatures={employeeSignatures}
-        softwareConfirmations={employeeSoftwareConfirmations}
-        demoItTickets={employeeTickets}
       />
 
       {selectedDocument ? (
@@ -519,7 +525,12 @@ export function NewcomerPortalPreview({
           documentId={selectedDocument.id}
           documentTitle={selectedDocument.title}
           reviewed={employeeDocumentOverrides[selectedDocument.id] === true}
-          received={employeeReceiptState[selectedDocument.id] === true}
+          demoSummaryReceived={
+            employeeSummaryReceiptState[selectedDocument.id] === true
+          }
+          onSummaryReceived={() =>
+            setDemoSummaryReceived(employeeId, selectedDocument.id, true)
+          }
           signature={employeeSignatures[selectedDocument.id]}
           onSign={(signerName) =>
             signDemoDocument(employeeId, selectedDocument.id, signerName)
@@ -576,7 +587,7 @@ function WelcomeHeader({
   const { plan } = result;
   const { employee } = plan;
   return (
-    <header className="overflow-hidden border-l-4 border-violet-500 bg-[var(--boardly-ink)] text-white shadow-[0_16px_38px_rgba(15,23,42,0.14)]">
+    <header className="boardly-surface overflow-hidden border-l-4 border-violet-500 bg-[var(--boardly-ink)] text-white">
       <div className="p-6 sm:p-8 lg:p-9">
         <p className="text-xs font-bold uppercase tracking-[0.14em] text-purple-200">
           Your onboarding plan
@@ -682,7 +693,7 @@ function OnboardingSummary({
   nextTask,
   documentTotal,
   reviewedDocumentCount,
-  receivedDocumentCount,
+  summaryReceivedCount,
   signedDocumentCount,
   softwareTotal,
   confirmedSoftwareCount,
@@ -699,7 +710,7 @@ function OnboardingSummary({
   nextTask: EffectiveChecklistItem | undefined;
   documentTotal: number;
   reviewedDocumentCount: number;
-  receivedDocumentCount: number;
+  summaryReceivedCount: number;
   signedDocumentCount: number;
   softwareTotal: number;
   confirmedSoftwareCount: number;
@@ -712,7 +723,7 @@ function OnboardingSummary({
   const softwarePercentage = percentage(confirmedSoftwareCount, softwareTotal);
   return (
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.85fr)]">
-      <article className="border-l-4 border-[var(--boardly-accent)] bg-[var(--boardly-ink)] p-6 text-white shadow-[0_16px_36px_rgba(15,23,42,0.16)] sm:p-7">
+      <article className="boardly-surface border-l-4 border-[var(--boardly-accent)] bg-[var(--boardly-ink)] p-6 text-white sm:p-7">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <p className="text-xs font-bold uppercase text-violet-200">Overall progress</p>
@@ -732,10 +743,10 @@ function OnboardingSummary({
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
         <ReadinessSummary title="Documents" tone="violet">
-          <p>{reviewedDocumentCount}/{documentTotal} reviewed · {receivedDocumentCount}/{documentTotal} received · {signedDocumentCount}/{documentTotal} demo acknowledged</p>
+          <p>{reviewedDocumentCount}/{documentTotal} reviewed · {summaryReceivedCount}/{documentTotal} demo summaries received · {signedDocumentCount}/{documentTotal} demo acknowledged</p>
           <div className="mt-3 grid grid-cols-3 gap-1" aria-label="Document readiness segments">
             <MiniSegment value={percentage(reviewedDocumentCount, documentTotal)} label="Reviewed" />
-            <MiniSegment value={percentage(receivedDocumentCount, documentTotal)} label="Received" />
+            <MiniSegment value={percentage(summaryReceivedCount, documentTotal)} label="Summary received" />
             <MiniSegment value={percentage(signedDocumentCount, documentTotal)} label="Acknowledged" />
           </div>
         </ReadinessSummary>
@@ -757,7 +768,7 @@ function OnboardingSummary({
 
 function ReadinessSummary({ title, tone, children }: { title: string; tone: "violet" | "green" | "amber" | "red" | "ink"; children: ReactNode }) {
   const rail = { violet: "border-violet-500", green: "border-emerald-500", amber: "border-amber-500", red: "border-red-500", ink: "border-slate-700" }[tone];
-  return <article className={`border-l-4 ${rail} bg-white px-4 py-3 shadow-[0_6px_18px_rgba(15,23,42,0.05)]`}><h3 className="text-sm font-bold text-[var(--boardly-text)]">{title}</h3><div className="mt-1 text-xs leading-5 text-[var(--boardly-muted)]">{children}</div></article>;
+  return <article className={`boardly-surface border-l-4 ${rail} px-4 py-3`}><h3 className="text-sm font-bold text-[var(--boardly-text)]">{title}</h3><div className="mt-1 text-xs leading-5 text-[var(--boardly-muted)]">{children}</div></article>;
 }
 
 function ProgressBar({ value, label, compact = false, trackClassName = "bg-slate-200", barClassName = "bg-[var(--boardly-success)]" }: { value: number; label: string; compact?: boolean; trackClassName?: string; barClassName?: string }) {
@@ -777,7 +788,7 @@ function DeviceReadinessCard({
 }) {
   const isWindows = operatingSystem === "windows";
   return (
-    <article className="rounded-2xl border border-purple-200 bg-white p-6 shadow-soft">
+    <article className="boardly-surface p-6">
       <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#6E36E4]">
         Device readiness
       </p>
@@ -805,7 +816,7 @@ function DeviceReadinessCard({
         <OverviewDetail label="Automatic execution" value="Disabled" />
         <OverviewDetail
           label="Manual coordination"
-          value="Some software or VPN setup may require IT review"
+          value="Some software or VPN setup may require operator review"
         />
       </dl>
     </article>
@@ -826,7 +837,7 @@ function OverviewDetailCard({
   onOpen: () => void;
 }) {
   return (
-    <article className="rounded-2xl border border-gray-200/80 bg-white p-5 shadow-soft">
+    <article className="boardly-surface p-5">
       <h2 className="text-base font-bold text-gray-950">{title}</h2>
       <p className="mt-2 text-lg font-bold text-[#6E36E4]">{value}</p>
       <p className="mt-2 text-sm leading-6 text-gray-600">{description}</p>
@@ -850,11 +861,73 @@ function OverviewDetail({ label, value }: { label: string; value: string }) {
   );
 }
 
-function CounterCard({ label, value }: { label: string; value: number }) {
+function TaskProgressSummary({
+  completed,
+  total,
+  progress,
+}: {
+  completed: number;
+  total: number;
+  progress: number;
+}) {
+  const remaining = Math.max(total - completed, 0);
+  const status =
+    progress === 100
+      ? "Checklist complete"
+      : completed > 0
+        ? "Onboarding in progress"
+        : "Ready to begin";
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-soft">
-      <p className="text-2xl font-bold text-gray-950">{value}</p>
-      <p className="mt-1 text-xs font-semibold text-gray-600">{label}</p>
+    <section
+      className="boardly-surface overflow-hidden"
+      aria-label="Task progress summary"
+    >
+      <div className="border-l-4 border-[var(--boardly-success)] px-5 py-4">
+        <div className="flex items-end justify-between gap-4">
+          <div>
+            <p className="text-xs font-bold uppercase text-[var(--boardly-success)]">
+              Checklist progress
+            </p>
+            <p className="mt-1 text-sm font-semibold text-[var(--boardly-text)]">
+              {status}
+            </p>
+          </div>
+          <p className="text-3xl font-bold text-[var(--boardly-text)]">
+            {progress}%
+          </p>
+        </div>
+        <ProgressBar value={progress} label="Overall task completion" />
+      </div>
+      <dl className="grid grid-cols-3 border-t border-[var(--boardly-border)] bg-[var(--boardly-elevated)]">
+        <TaskMetric label="Completed" value={completed} tone="success" />
+        <TaskMetric label="Remaining" value={remaining} tone="warning" />
+        <TaskMetric label="Total" value={total} tone="ink" />
+      </dl>
+    </section>
+  );
+}
+
+function TaskMetric({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: number;
+  tone: "success" | "warning" | "ink";
+}) {
+  const color =
+    tone === "success"
+      ? "text-emerald-700"
+      : tone === "warning"
+        ? "text-amber-700"
+        : "text-[var(--boardly-text)]";
+  return (
+    <div className="border-r border-[var(--boardly-border)] px-3 py-3 text-center last:border-r-0">
+      <dt className="text-xs font-semibold text-[var(--boardly-muted)]">
+        {label}
+      </dt>
+      <dd className={`mt-1 text-xl font-bold ${color}`}>{value}</dd>
     </div>
   );
 }
@@ -862,56 +935,120 @@ function CounterCard({ label, value }: { label: string; value: number }) {
 function ChecklistGroup({
   title,
   items,
+  active,
   onToggle,
 }: {
   title: string;
   items: EffectiveChecklistItem[];
+  active: boolean;
   onToggle: (taskId: string, completed: boolean) => void;
 }) {
+  const completedCount = items.filter(({ completed }) => completed).length;
+  const phaseProgress = percentage(completedCount, items.length);
+  const firstIncompleteId = items.find(({ completed }) => !completed)?.item.id;
+  const headingId = `checklist-${title.toLowerCase().replace(/\s+/g, "-")}`;
   return (
-    <article className="rounded-2xl border border-gray-200/80 bg-white p-5 shadow-soft sm:p-6">
-      <div className="flex items-center justify-between gap-4 border-b border-gray-100 pb-4">
-        <h3 className="text-base font-bold text-gray-950">{title}</h3>
-        <span className="rounded-lg bg-purple-50 px-2.5 py-1 text-xs font-bold text-[#6E36E4]">
-          {items.length} {items.length === 1 ? "task" : "tasks"}
-        </span>
+    <article
+      className="boardly-surface overflow-hidden"
+      aria-labelledby={headingId}
+    >
+      <div className="border-b border-[var(--boardly-border)] bg-[var(--boardly-elevated)] px-5 py-4 sm:px-6">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-bold uppercase text-[var(--boardly-accent)]">
+              Onboarding phase
+            </p>
+            <h3
+              id={headingId}
+              className="mt-1 text-lg font-bold text-[var(--boardly-text)]"
+            >
+              {title} journey
+            </h3>
+          </div>
+          <span className="rounded-lg border border-[var(--boardly-border)] bg-white px-2.5 py-1 text-xs font-bold text-[var(--boardly-text)]">
+            {completedCount}/{items.length} complete
+          </span>
+        </div>
+        <ProgressBar
+          value={phaseProgress}
+          label={`${title} task completion`}
+          compact
+        />
       </div>
       {items.length > 0 ? (
-        <ul className="mt-1 divide-y divide-gray-100">
-          {items.map(({ item, completed }) => (
-            <li key={item.id} className="py-4">
-              <label className="flex cursor-pointer items-start gap-3">
-                <input
-                  type="checkbox"
-                  checked={completed}
-                  onChange={(event) => onToggle(item.id, event.target.checked)}
-                  className="mt-0.5 h-5 w-5 shrink-0 accent-[#6E36E4] focus:ring-2 focus:ring-[#6E36E4]/30"
-                />
-                <span className="min-w-0">
-                  <span
-                    className={`block font-semibold ${
-                      completed
-                        ? "text-gray-500 line-through"
-                        : "text-gray-950"
-                    }`}
+        <ul
+          className="relative px-4 py-5 before:absolute before:bottom-10 before:left-[2.1rem] before:top-10 before:w-px before:bg-slate-200 sm:px-6 lg:grid lg:gap-0 lg:px-5 lg:py-6 lg:before:bottom-auto lg:before:left-[6%] lg:before:right-[6%] lg:before:top-[2.2rem] lg:before:h-px lg:before:w-auto"
+          style={{
+            gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))`,
+          }}
+        >
+          {items.map(({ item, completed }) => {
+            const status = completed
+              ? "Completed"
+              : active && item.id === firstIncompleteId
+                ? "In progress"
+                : "Pending";
+            const statusClass = completed
+              ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+              : status === "In progress"
+                ? "border-amber-200 bg-amber-50 text-amber-800"
+                : "border-slate-200 bg-slate-50 text-slate-600";
+            return (
+              <li
+                key={item.id}
+                className="relative pb-6 pl-12 last:pb-0 lg:min-w-0 lg:px-2 lg:pb-0 lg:pl-2 lg:pt-12 lg:text-center"
+              >
+                <label className="absolute left-0 top-0 z-[1] flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border-2 border-white bg-white shadow-sm lg:left-1/2 lg:-translate-x-1/2">
+                  <span className="sr-only">
+                    Mark {item.title} {completed ? "incomplete" : "complete"}
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={completed}
+                    onChange={(event) =>
+                      onToggle(item.id, event.target.checked)
+                    }
+                    className="h-5 w-5 accent-[#6E36E4] focus:ring-2 focus:ring-[#6E36E4]/30"
+                  />
+                </label>
+                <div
+                  className={`rounded-lg px-2 py-2 transition ${
+                    completed
+                      ? "text-slate-500"
+                      : status === "In progress"
+                        ? "bg-amber-50/70 text-[var(--boardly-text)]"
+                        : "text-[var(--boardly-text)]"
+                  }`}
+                >
+                  <h4
+                    className={`text-sm font-bold leading-5 ${completed ? "line-through" : ""}`}
                   >
                     {item.title}
+                  </h4>
+                  <span
+                    className={`mt-2 inline-flex rounded-lg border px-2 py-1 text-xs font-bold ${statusClass}`}
+                  >
+                    {status}
                   </span>
-                  <span className="mt-1 block text-sm leading-6 text-gray-600">
-                    {item.description}
-                  </span>
-                  <span className="mt-2 block text-xs leading-5 text-gray-500">
-                    <strong className="text-gray-700">Why it matters:</strong>{" "}
-                    This task supports your {formatToken(item.phase).toLowerCase()}{" "}
-                    onboarding progress.
-                  </span>
-                  <span className="mt-2 block text-xs font-semibold text-[#6E36E4]">
-                    {completed ? "Completed and saved" : "Not completed"}
-                  </span>
-                </span>
-              </label>
-            </li>
-          ))}
+                  <details className="group mt-2 text-left lg:text-center">
+                    <summary className="cursor-pointer text-xs font-bold text-[var(--boardly-accent)] focus:outline-none focus:ring-2 focus:ring-[var(--boardly-focus)]">
+                      View details
+                    </summary>
+                    <div className="mt-2 border-t border-[var(--boardly-border)] pt-2 text-xs leading-5 text-[var(--boardly-muted)] lg:text-left">
+                      <p>{item.description}</p>
+                      <p className="mt-2">
+                        <strong className="text-[var(--boardly-text)]">
+                          Why it matters:
+                        </strong>{" "}
+                        This verified task advances your{" "}
+                        {formatToken(item.phase).toLowerCase()} checklist.
+                      </p>
+                    </div>
+                  </details>
+                </div>
+              </li>
+            );
+          })}
         </ul>
       ) : (
         <EmptyState message={`No ${title.toLowerCase()} tasks were returned.`} />
@@ -990,7 +1127,7 @@ function SoftwareResourceGroup({
                 <div className="mt-4 flex flex-wrap gap-2">
                   <SmallAction label="View setup guidance" onClick={onOpenSetup} />
                   <SmallAction
-                    label="Create demo IT ticket"
+                    label="Create demo support request"
                     onClick={() => onOpenTicket(softwareId)}
                   />
                 </div>
@@ -1008,38 +1145,43 @@ function SoftwareResourceGroup({
 function DocumentResourceGroup({
   values,
   reviewOverrides,
-  receiptState,
+  summaryReceiptState,
   signatures,
   onToggleReview,
-  onToggleReceived,
+  onToggleSummaryReceived,
   onOpenDocument,
 }: {
   values: string[];
   reviewOverrides: Record<string, boolean>;
-  receiptState: Record<string, boolean>;
+  summaryReceiptState: Record<string, boolean>;
   signatures: Record<string, { signed: boolean; signerName: string }>;
   onToggleReview: (documentId: string, reviewed: boolean) => void;
-  onToggleReceived: (documentId: string, received: boolean) => void;
+  onToggleSummaryReceived: (
+    documentId: string,
+    received: boolean,
+  ) => void;
   onOpenDocument: (documentId: string) => void;
 }) {
   const reviewedCount = countTrueValues(values, reviewOverrides);
-  const receivedCount = countTrueValues(values, receiptState);
+  const summaryReceivedCount = countTrueValues(values, summaryReceiptState);
   const signedCount = values.filter((id) => signatures[id]?.signed).length;
   return (
     <ResourceSection
       title="Documentation"
-      summary={`${reviewedCount} reviewed · ${receivedCount} received · ${signedCount} demo signed · ${values.length} total`}
+      summary={`${reviewedCount} reviewed · ${summaryReceivedCount} demo summaries received · ${signedCount} demo signed · ${values.length} total`}
     >
       <p className="mb-4 text-sm leading-6 text-gray-600">
-        Review, receipt and non-binding demo acknowledgment states are stored
-        in the local Boardly demo database. Marking a document received does
-        not download a source document.
+        Review, demo-summary receipt and non-binding acknowledgment states are
+        stored in the local Boardly demo database. Signing the acknowledgment
+        marks this preview reviewed. Downloading the PDF marks its local demo
+        summary received; no original company document is included.
       </p>
       {values.length > 0 ? (
         <div className="grid gap-4 lg:grid-cols-2">
           {values.map((documentId) => {
             const reviewed = reviewOverrides[documentId] === true;
-            const received = receiptState[documentId] === true;
+            const summaryReceived =
+              summaryReceiptState[documentId] === true;
             const signed = signatures[documentId]?.signed === true;
             return (
               <article
@@ -1069,16 +1211,19 @@ function DocumentResourceGroup({
                   <label className="flex cursor-pointer items-center gap-2 text-sm font-semibold text-gray-800">
                     <input
                       type="checkbox"
-                      checked={received}
+                      checked={summaryReceived}
                       onChange={(event) =>
-                        onToggleReceived(documentId, event.target.checked)
+                        onToggleSummaryReceived(
+                          documentId,
+                          event.target.checked,
+                        )
                       }
                       className="h-5 w-5 accent-[#6E36E4] focus:ring-2 focus:ring-[#6E36E4]/30"
                     />
                     <span>
-                      {received
-                        ? "Receipt saved locally"
-                        : "Mark as received"}
+                      {summaryReceived
+                        ? "Demo summary received"
+                        : "Mark demo summary as received"}
                     </span>
                   </label>
                 </div>
@@ -1184,7 +1329,7 @@ function RepositoryResourceGroup({
                 <div className="mt-4 flex flex-wrap gap-2">
                   <SmallAction label="View access details" onClick={onOpenAccess} />
                   <SmallAction
-                    label="Create demo IT ticket"
+                    label="Create demo support request"
                     onClick={() => onOpenTicket(repositoryId)}
                   />
                 </div>
@@ -1209,7 +1354,7 @@ function ResourceSection({
   children: ReactNode;
 }) {
   return (
-    <section className="rounded-2xl border border-gray-200/80 bg-white p-5 shadow-soft sm:p-6">
+    <section className="boardly-surface p-5 sm:p-6">
       <div className="mb-5 flex flex-col gap-2 border-b border-gray-100 pb-4 sm:flex-row sm:items-center sm:justify-between">
         <h3 className="text-lg font-bold text-gray-950">{title}</h3>
         <p className="text-sm font-semibold text-[#6E36E4]">{summary}</p>
@@ -1297,7 +1442,7 @@ function AccessRequestCard({
   onOpenTicket: () => void;
 }) {
   return (
-    <article className="rounded-2xl border border-gray-200/80 bg-white p-5 shadow-soft sm:p-6">
+    <article className="boardly-surface p-5 sm:p-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <h3 className="break-words text-base font-bold text-gray-950">
@@ -1345,7 +1490,7 @@ function AccessRequestCard({
         onClick={onOpenTicket}
         className="mt-4 rounded-lg border border-purple-200 px-3 py-2 text-sm font-bold text-[#6E36E4] transition hover:bg-purple-50 focus:outline-none focus:ring-2 focus:ring-[#6E36E4]/30"
       >
-        Create demo IT ticket
+        Create demo support request
       </button>
       <details className="mt-5 rounded-xl border border-gray-200 bg-white p-4">
         <summary className="cursor-pointer text-sm font-bold text-gray-950 focus:outline-none focus:ring-2 focus:ring-[#6E36E4]/30">
@@ -1455,7 +1600,10 @@ function BoardlyIntelligence({
 }) {
   const employee = result.plan.employee;
   return (
-    <section className="border border-[var(--boardly-border)] bg-[var(--boardly-elevated)] p-5 sm:p-6" aria-labelledby="boardly-intelligence-title">
+    <section
+      className="boardly-surface bg-[var(--boardly-elevated)] p-5 sm:p-6"
+      aria-labelledby="boardly-intelligence-title"
+    >
       <div className="grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)]">
         <div className="border-l-4 border-[var(--boardly-accent)] pl-4">
           <p className="text-xs font-bold uppercase text-[var(--boardly-accent)]">Recommendation rationale</p>
@@ -1494,7 +1642,7 @@ function SetupReadinessHeader({
     softwareIds.length + 1,
   );
   return (
-    <section className="overflow-hidden border border-[var(--boardly-border)] bg-white shadow-[0_10px_28px_rgba(15,23,42,0.07)]">
+    <section className="boardly-surface overflow-hidden">
       <div className="grid gap-5 bg-[var(--boardly-ink)] p-5 text-white sm:grid-cols-[1fr_auto] sm:items-center sm:p-6">
         <div>
           <p className="text-xs font-bold uppercase text-violet-200">Setup readiness</p>
@@ -1539,10 +1687,13 @@ function SetupSoftwarePlan({
   const remainingCount = Math.max(softwareIds.length - confirmedCount, 0);
   const progress = percentage(confirmedCount, softwareIds.length);
   const manualSteps = softwareIds.includes("company-vpn-client")
-    ? ["Company VPN Client requires IT approval before installation."]
+    ? ["Company VPN Client requires operator approval before installation."]
     : [];
   return (
-    <section className="border border-[var(--boardly-border)] bg-white p-5 sm:p-6" aria-labelledby="setup-software-plan-title">
+    <section
+      className="boardly-surface p-5 sm:p-6"
+      aria-labelledby="setup-software-plan-title"
+    >
       <div className="flex flex-col gap-4 border-b border-[var(--boardly-border)] pb-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h3 id="setup-software-plan-title" className="text-lg font-bold text-[var(--boardly-text)]">Software preparation progress</h3>
@@ -1558,7 +1709,7 @@ function SetupSoftwarePlan({
             <label className="mt-4 flex cursor-pointer items-start gap-3 text-sm font-semibold text-[var(--boardly-text)]"><input type="checkbox" checked={confirmed} onChange={(event) => onToggle(softwareId, event.target.checked)} className="mt-0.5 h-5 w-5 accent-[var(--boardly-success)] focus:ring-2 focus:ring-[var(--boardly-focus)]" /><span>Installed or confirmed manually</span></label>
             <p className="mt-2 text-xs text-amber-800">Self-reported and not verified by Boardly.</p>
             {tickets[`software:${softwareId}`]?.submitted ? <TicketBadge /> : null}
-            <button type="button" onClick={() => onOpenTicket(softwareId)} className="mt-3 text-xs font-bold text-[var(--boardly-accent)] focus:outline-none focus:ring-2 focus:ring-[var(--boardly-focus)]">Create demo IT ticket</button>
+            <button type="button" onClick={() => onOpenTicket(softwareId)} className="mt-3 text-xs font-bold text-[var(--boardly-accent)] focus:outline-none focus:ring-2 focus:ring-[var(--boardly-focus)]">Create demo support request</button>
           </li>;
         })}</ul>
       ) : (

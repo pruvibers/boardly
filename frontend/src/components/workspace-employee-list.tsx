@@ -63,7 +63,7 @@ export function WorkspaceEmployeeList() {
           {hydrationError}
         </p>
       ) : null}
-      <div className="grid gap-4 rounded-2xl border border-gray-200 bg-white p-5 shadow-soft sm:grid-cols-2">
+      <div className="boardly-surface grid gap-4 p-5 sm:grid-cols-2">
         <label>
           <span className="text-sm font-bold text-gray-950">Search employees</span>
           <input
@@ -110,7 +110,7 @@ export function WorkspaceEmployeeList() {
             return (
               <article
                 key={employee.employee_id}
-                className="border border-[var(--boardly-border)] bg-white shadow-[0_8px_24px_rgba(15,23,42,0.05)]"
+                className="boardly-surface overflow-hidden"
               >
                 <div className="grid gap-5 border-l-4 border-[var(--boardly-accent)] p-5 sm:p-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(260px,0.8fr)_240px] xl:items-center">
                   <div className="flex min-w-0 items-start gap-4">

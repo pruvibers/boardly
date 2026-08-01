@@ -7,11 +7,12 @@ type DemoDocumentModalProps = {
   documentId: string;
   documentTitle: string;
   reviewed: boolean;
-  received: boolean;
+  demoSummaryReceived: boolean;
   signature?: {
     signed: boolean;
     signerName: string;
   };
+  onSummaryReceived: () => void;
   onSign: (signerName: string) => void;
   onClearSignature: () => void;
   onClose: () => void;
@@ -22,14 +23,17 @@ export function DemoDocumentModal({
   documentId,
   documentTitle,
   reviewed,
-  received,
+  demoSummaryReceived,
   signature,
+  onSummaryReceived,
   onSign,
   onClearSignature,
   onClose,
 }: DemoDocumentModalProps) {
   const [signerName, setSignerName] = useState("");
   const [acknowledged, setAcknowledged] = useState(false);
+  const [downloadError, setDownloadError] = useState("");
+  const [isDownloading, setIsDownloading] = useState(false);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
@@ -52,26 +56,45 @@ export function DemoDocumentModal({
   }
 
   function handleDownloadSummary() {
-    const lines = [
-      "Boardly hackathon demo review summary",
-      `Employee: ${employeeName}`,
-      `Document: ${documentTitle}`,
-      `Document ID: ${documentId}`,
-      `Reviewed: ${reviewed ? "Yes" : "No"}`,
-      `Received: ${received ? "Yes" : "No"}`,
-      `Demo acknowledgment signed: ${signature?.signed ? "Yes" : "No"}`,
-      ...(signature?.signed ? [`Signer name: ${signature.signerName}`] : []),
-      "This is a demo summary, not an official company document or legal signature.",
-    ];
-    const blob = new Blob([createDemoPdf(lines)], { type: "application/pdf" });
-    const objectUrl = URL.createObjectURL(blob);
-    const downloadLink = document.createElement("a");
-    downloadLink.href = objectUrl;
-    downloadLink.download = `boardly-demo-${safeFilename(documentId)}.pdf`;
-    document.body.appendChild(downloadLink);
-    downloadLink.click();
-    downloadLink.remove();
-    URL.revokeObjectURL(objectUrl);
+    if (isDownloading) return;
+
+    setDownloadError("");
+    setIsDownloading(true);
+    let objectUrl: string | undefined;
+    let downloadLink: HTMLAnchorElement | undefined;
+
+    try {
+      const lines = [
+        "Boardly hackathon demo review summary",
+        `Employee: ${employeeName}`,
+        `Document: ${documentTitle}`,
+        `Document ID: ${documentId}`,
+        `Reviewed: ${reviewed ? "Yes" : "No"}`,
+        "Demo summary received: Yes",
+        `Demo acknowledgment signed: ${signature?.signed ? "Yes" : "No"}`,
+        ...(signature?.signed ? [`Signer name: ${signature.signerName}`] : []),
+        "This PDF contains the local review and acknowledgment summary.",
+        "It does not contain an original company document or legal signature.",
+      ];
+      const blob = new Blob([createDemoPdf(lines)], {
+        type: "application/pdf",
+      });
+      objectUrl = URL.createObjectURL(blob);
+      downloadLink = document.createElement("a");
+      downloadLink.href = objectUrl;
+      downloadLink.download = `boardly-demo-${safeFilename(documentId)}.pdf`;
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      onSummaryReceived();
+    } catch {
+      setDownloadError("The PDF demo summary could not be downloaded.");
+    } finally {
+      downloadLink?.remove();
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
+      setIsDownloading(false);
+    }
   }
 
   return (
@@ -123,7 +146,7 @@ export function DemoDocumentModal({
 
         <div className="space-y-5 px-5 py-5 sm:px-6">
           <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold leading-6 text-amber-900">
-            Demo preview — this is not the source company document.
+            Demo preview - this is not an original company document.
           </p>
 
           <section className="rounded-xl border border-gray-200 bg-gray-50 p-5">
@@ -132,8 +155,8 @@ export function DemoDocumentModal({
             </h3>
             <p className="mt-3 text-sm leading-6 text-gray-600">
               This generated demo preview represents {documentTitle} in your
-              onboarding plan. Review the source document provided by your
-              company for official content.
+              onboarding plan. It does not contain an original company
+              document.
             </p>
           </section>
 
@@ -146,7 +169,8 @@ export function DemoDocumentModal({
                 Demo signer: {signature.signerName}
               </p>
               <p className="mt-2 text-sm leading-6 text-emerald-800">
-                Not legally binding and not submitted externally.
+                This automatically marks the demo preview reviewed. It is not
+                legally binding and is not submitted externally.
               </p>
               <button
                 type="button"
@@ -164,6 +188,10 @@ export function DemoDocumentModal({
               <h3 className="text-base font-bold text-gray-950">
                 Demo acknowledgment
               </h3>
+              <p className="mt-2 text-sm leading-6 text-gray-600">
+                Signing this non-binding demo acknowledgment records that you
+                reviewed this demo preview.
+              </p>
               <label className="mt-4 block">
                 <span className="text-sm font-bold text-gray-950">
                   Type your name
@@ -183,7 +211,7 @@ export function DemoDocumentModal({
                 />
                 <span>
                   I understand this is a non-binding hackathon demo
-                  acknowledgment
+                  acknowledgment and signing marks this demo preview reviewed
                 </span>
               </label>
               <button
@@ -201,16 +229,31 @@ export function DemoDocumentModal({
               Local demo review summary
             </h3>
             <p className="mt-2 text-sm leading-6 text-gray-600">
-              Generates a local PDF containing only this demo review, receipt
-              and acknowledgment summary. It does not contain company document
-              content.
+              This PDF contains the local review and acknowledgment summary. It
+              does not contain an original company document. Downloading the
+              demo summary records that the local demo summary was received.
             </p>
+            <p className="mt-3 text-sm font-semibold text-gray-700">
+              {demoSummaryReceived
+                ? "Demo summary received"
+                : "Demo summary not yet received"}
+            </p>
+            {downloadError ? (
+              <p
+                role="alert"
+                aria-live="polite"
+                className="mt-3 text-sm font-semibold text-red-700"
+              >
+                {downloadError}
+              </p>
+            ) : null}
             <button
               type="button"
               onClick={handleDownloadSummary}
+              disabled={isDownloading}
               className="mt-4 rounded-lg bg-[#6E36E4] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#5B21B6] focus:outline-none focus:ring-2 focus:ring-[#6E36E4]/40 focus:ring-offset-2"
             >
-              Download PDF demo summary
+              {isDownloading ? "Preparing PDF..." : "Download PDF demo summary"}
             </button>
           </section>
         </div>

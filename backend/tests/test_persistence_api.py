@@ -57,7 +57,7 @@ def test_employee_specific_plan_and_demo_state_endpoints_do_not_cross() -> None:
     abdulkerim_state = {
         "task_completion_overrides": {},
         "document_review_state": {},
-        "document_receipt_state": {},
+        "demo_summary_received": {},
         "demo_acknowledgment_signer_names": {},
         "software_confirmations": {},
         "demo_it_tickets": {},
@@ -87,7 +87,7 @@ def test_demo_state_put_and_get_endpoints() -> None:
     state = {
         "task_completion_overrides": {task_id: True},
         "document_review_state": {},
-        "document_receipt_state": {},
+        "demo_summary_received": {},
         "demo_acknowledgment_signer_names": {},
         "software_confirmations": {},
         "demo_it_tickets": {},
@@ -125,3 +125,72 @@ def test_missing_demo_state_plan_returns_404() -> None:
     )
 
     assert response.status_code == 404
+
+
+def test_demo_summary_receipt_is_persisted_idempotently() -> None:
+    generated = client.post(
+        "/onboarding/plans/generate",
+        json=employee_payload("summary-001", "summary-001@example.com"),
+    ).json()
+    document_id = generated["plan"]["document_ids"][0]
+    state = {"demo_summary_received": {document_id: True}}
+
+    first = client.put(
+        "/onboarding/plans/summary-001/demo-state", json=state
+    )
+    repeated = client.put(
+        "/onboarding/plans/summary-001/demo-state", json=state
+    )
+    retrieved = client.get(
+        "/onboarding/plans/summary-001/demo-state"
+    )
+
+    assert first.status_code == 200
+    assert repeated.status_code == 200
+    assert first.json()["demo_summary_received"] == {document_id: True}
+    assert repeated.json() == first.json()
+    assert retrieved.json() == first.json()
+
+
+def test_failed_demo_summary_update_does_not_change_state() -> None:
+    client.post(
+        "/onboarding/plans/generate",
+        json=employee_payload("summary-failed", "summary-failed@example.com"),
+    )
+
+    response = client.put(
+        "/onboarding/plans/summary-failed/demo-state",
+        json={"demo_summary_received": {"unknown-document": True}},
+    )
+    persisted = client.get(
+        "/onboarding/plans/summary-failed/demo-state"
+    )
+
+    assert response.status_code == 422
+    assert persisted.json()["demo_summary_received"] == {}
+
+
+def test_demo_summary_receipt_is_isolated_between_employees() -> None:
+    first = client.post(
+        "/onboarding/plans/generate",
+        json=employee_payload("summary-first", "summary-first@example.com"),
+    ).json()
+    client.post(
+        "/onboarding/plans/generate",
+        json=employee_payload("summary-second", "summary-second@example.com"),
+    )
+    document_id = first["plan"]["document_ids"][0]
+
+    client.put(
+        "/onboarding/plans/summary-first/demo-state",
+        json={"demo_summary_received": {document_id: True}},
+    )
+
+    first_state = client.get(
+        "/onboarding/plans/summary-first/demo-state"
+    ).json()
+    second_state = client.get(
+        "/onboarding/plans/summary-second/demo-state"
+    ).json()
+    assert first_state["demo_summary_received"] == {document_id: True}
+    assert second_state["demo_summary_received"] == {}

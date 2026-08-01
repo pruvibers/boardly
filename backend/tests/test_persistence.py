@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 import pytest
@@ -158,7 +159,7 @@ def test_demo_state_save_and_retrieval(tmp_path: Path) -> None:
     state = PersistedDemoState(
         task_completion_overrides={task_id: True},
         document_review_state={document_id: True},
-        document_receipt_state={document_id: True},
+        demo_summary_received={document_id: True},
         demo_acknowledgment_signer_names={document_id: "Aylin Demir"},
         software_confirmations={software_id: True},
         demo_it_tickets={
@@ -190,7 +191,7 @@ def test_demo_state_save_and_retrieval(tmp_path: Path) -> None:
     [
         ("task_completion_overrides", {"unknown-task": True}),
         ("document_review_state", {"unknown-document": True}),
-        ("document_receipt_state", {"unknown-document": True}),
+        ("demo_summary_received", {"unknown-document": True}),
         ("software_confirmations", {"unknown-software": True}),
     ],
 )
@@ -252,3 +253,46 @@ def test_missing_plan_and_demo_state_return_none(tmp_path: Path) -> None:
 
     assert database.get_plan("missing") is None
     assert database.get_demo_state("missing") is None
+
+
+def test_legacy_document_receipt_state_maps_to_demo_summary_received() -> None:
+    state = PersistedDemoState.model_validate(
+        {"document_receipt_state": {"security-handbook": True}}
+    )
+
+    assert state.demo_summary_received == {"security-handbook": True}
+    assert "document_receipt_state" not in state.model_dump()
+
+
+def test_demo_summary_received_defaults_to_empty() -> None:
+    assert PersistedDemoState().demo_summary_received == {}
+
+
+def test_legacy_sqlite_demo_state_round_trips_without_database_reset(
+    tmp_path: Path,
+) -> None:
+    database = make_database(tmp_path)
+    result = make_result("legacy-state", "legacy-state@example.com")
+    database.save_plan(result)
+    document_id = result.plan.document_ids[0]
+    legacy_json = json.dumps(
+        {"document_receipt_state": {document_id: True}}
+    )
+    with database.connect() as connection:
+        connection.execute(
+            "INSERT INTO demo_states (employee_id, state_json) VALUES (?, ?)",
+            ("legacy-state", legacy_json),
+        )
+
+    loaded = database.get_demo_state("legacy-state")
+
+    assert loaded is not None
+    assert loaded.demo_summary_received == {document_id: True}
+    database.save_demo_state("legacy-state", loaded)
+    with database.connect() as connection:
+        stored_json = connection.execute(
+            "SELECT state_json FROM demo_states WHERE employee_id = ?",
+            ("legacy-state",),
+        ).fetchone()["state_json"]
+    assert "demo_summary_received" in stored_json
+    assert "document_receipt_state" not in stored_json
