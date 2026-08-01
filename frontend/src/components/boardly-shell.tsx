@@ -56,6 +56,27 @@ export function BoardlyShell({ children }: BoardlyShellProps) {
             <span>New onboarding</span>
           </a>
           <a
+            href="#selected-plan"
+            className="flex items-center gap-3 rounded-xl px-3.5 py-3 text-sm font-semibold text-gray-600 transition hover:bg-[#F1EBFD] hover:text-[#6E36E4] focus:outline-none focus:ring-2 focus:ring-[#6E36E4]/30"
+          >
+            <svg
+              aria-hidden="true"
+              className="h-5 w-5"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <path
+                d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <circle cx="12" cy="12" r="2.5" />
+            </svg>
+            <span>Newcomer experience</span>
+          </a>
+          <a
             href="#session-employees"
             className="flex items-center gap-3 rounded-xl px-3.5 py-3 text-sm font-semibold text-gray-600 transition hover:bg-[#F1EBFD] hover:text-[#6E36E4] focus:outline-none focus:ring-2 focus:ring-[#6E36E4]/30"
           >

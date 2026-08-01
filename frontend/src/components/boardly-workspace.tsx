@@ -2,10 +2,14 @@
 
 import { useState } from "react";
 import { EmployeeForm } from "@/components/employee-form";
+import { SelectedPlanViewer } from "@/components/selected-plan-viewer";
 import type { PlannedOnboardingResult } from "@/lib/types";
 
 export function BoardlyWorkspace() {
   const [results, setResults] = useState<PlannedOnboardingResult[]>([]);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(
+    null,
+  );
 
   const metrics = results.reduce(
     (totals, result) => {
@@ -32,10 +36,16 @@ export function BoardlyWorkspace() {
       result,
       ...currentResults.filter(
         (currentResult) =>
-          currentResult.plan.employee.employee_id !== employeeId,
+        currentResult.plan.employee.employee_id !== employeeId,
       ),
     ]);
+    setSelectedEmployeeId(employeeId);
   }
+
+  const selectedResult =
+    results.find(
+      (result) => result.plan.employee.employee_id === selectedEmployeeId,
+    ) ?? null;
 
   return (
     <div className="space-y-8">
@@ -107,7 +117,40 @@ export function BoardlyWorkspace() {
         </div>
       </section>
 
-      <EmployeeForm onPlanGenerated={handlePlanGenerated} />
+      <EmployeeForm
+        onPlanGenerated={handlePlanGenerated}
+        showGeneratedResult={false}
+      />
+
+      <section
+        id="selected-plan"
+        aria-labelledby="selected-plan-title"
+        className="scroll-mt-24"
+      >
+        {selectedResult ? (
+          <SelectedPlanViewer
+            key={JSON.stringify(selectedResult)}
+            result={selectedResult}
+          />
+        ) : (
+          <div className="rounded-2xl border border-dashed border-purple-200 bg-white px-6 py-12 text-center shadow-soft sm:px-8">
+            <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#6E36E4]">
+              Newcomer experience
+            </p>
+            <h2
+              id="selected-plan-title"
+              className="mt-3 text-2xl font-bold text-gray-950"
+            >
+              A newcomer plan will appear here
+            </h2>
+            <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-gray-500">
+              Generate a successful onboarding plan to preview the real tasks,
+              resources, access review, and device setup prepared for that
+              employee.
+            </p>
+          </div>
+        )}
+      </section>
 
       <section
         id="session-employees"
@@ -130,7 +173,7 @@ export function BoardlyWorkspace() {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="min-w-[1040px] w-full border-collapse text-left text-sm">
+          <table className="min-w-[1220px] w-full border-collapse text-left text-sm">
             <caption className="sr-only">
               Successful onboarding plans generated during this session
             </caption>
@@ -160,6 +203,9 @@ export function BoardlyWorkspace() {
                 <th scope="col" className="px-6 py-3.5 text-right sm:pr-8">
                   Blocked
                 </th>
+                <th scope="col" className="px-6 py-3.5 sm:pr-8">
+                  Experience
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -177,7 +223,11 @@ export function BoardlyWorkspace() {
                   return (
                     <tr
                       key={employee.employee_id}
-                      className="text-gray-700 transition hover:bg-purple-50/40"
+                      className={`text-gray-700 transition hover:bg-purple-50/40 ${
+                        selectedEmployeeId === employee.employee_id
+                          ? "bg-purple-50/60"
+                          : ""
+                      }`}
                     >
                       <td className="whitespace-nowrap px-6 py-4 font-semibold text-gray-950 sm:pl-8">
                         {employee.employee_id}
@@ -203,13 +253,24 @@ export function BoardlyWorkspace() {
                       <td className="px-6 py-4 text-right font-semibold text-gray-950 sm:pr-8">
                         {blockedDecisionCount}
                       </td>
+                      <td className="whitespace-nowrap px-6 py-4 sm:pr-8">
+                        <a
+                          href="#selected-plan"
+                          onClick={() =>
+                            setSelectedEmployeeId(employee.employee_id)
+                          }
+                          className="inline-flex rounded-lg border border-purple-200 bg-purple-50 px-3 py-2 text-xs font-bold text-[#6E36E4] transition hover:border-purple-300 hover:bg-purple-100 focus:outline-none focus:ring-2 focus:ring-[#6E36E4]/30 focus:ring-offset-2"
+                        >
+                          Open newcomer view
+                        </a>
+                      </td>
                     </tr>
                   );
                 })
               ) : (
                 <tr>
                   <td
-                    colSpan={8}
+                    colSpan={9}
                     className="px-6 py-12 text-center text-sm leading-6 text-gray-500"
                   >
                     No session employees yet. Successful generated plans will

@@ -49,9 +49,13 @@ const initialForm: VerifiedEmployeeProfile = {
 
 type EmployeeFormProps = {
   onPlanGenerated?: (result: PlannedOnboardingResult) => void;
+  showGeneratedResult?: boolean;
 };
 
-export function EmployeeForm({ onPlanGenerated }: EmployeeFormProps) {
+export function EmployeeForm({
+  onPlanGenerated,
+  showGeneratedResult = true,
+}: EmployeeFormProps) {
   const [form, setForm] = useState<VerifiedEmployeeProfile>(initialForm);
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState("");
@@ -236,7 +240,9 @@ export function EmployeeForm({ onPlanGenerated }: EmployeeFormProps) {
         </form>
       </div>
 
-      {result ? <OnboardingResult result={result} /> : null}
+      {showGeneratedResult && result ? (
+        <OnboardingResult result={result} />
+      ) : null}
     </section>
   );
 }

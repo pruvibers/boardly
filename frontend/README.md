@@ -40,3 +40,7 @@ Setup-preview integration uses `POST /onboarding/setup-script/preview`. Preview 
 The UI now uses the Boardly dashboard visual foundation. The underlying onboarding and setup-preview flows remain connected to the real backend, and unsupported prototype screens were intentionally not included.
 
 Successful generated plans are summarized in a session-only dashboard. Session records exist only in React memory, refreshing the page clears them, and all dashboard metrics are derived from real backend responses.
+
+## Generated Plan Views
+
+The newcomer experience is the primary generated-plan presentation and uses real backend plan data. A full operator review remains available as a secondary view. This preview is session-only, is not a persistent invitation route, and refreshing the page clears all generated session plans.
