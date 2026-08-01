@@ -1,4 +1,9 @@
-import type { PlannedOnboardingResult, VerifiedEmployeeProfile } from "@/lib/types";
+import type {
+  OperatingSystem,
+  PlannedOnboardingResult,
+  SetupScriptPreview,
+  VerifiedEmployeeProfile,
+} from "@/lib/types";
 
 export class ApiClientError extends Error {
   constructor(message: string) {
@@ -20,6 +25,33 @@ type FastApiErrorBody = {
 export async function generateOnboardingPlan(
   employee: VerifiedEmployeeProfile,
 ): Promise<PlannedOnboardingResult> {
+  const payload = await postJson("/onboarding/plans/generate", employee);
+
+  if (!isPlannedOnboardingResult(payload)) {
+    throw new ApiClientError("The backend returned an unexpected response.");
+  }
+
+  return payload;
+}
+
+export async function generateSetupScriptPreview(
+  employee: VerifiedEmployeeProfile,
+): Promise<SetupScriptPreview> {
+  const payload = await postJson("/onboarding/setup-script/preview", employee);
+
+  if (!isSetupScriptPreview(payload)) {
+    throw new ApiClientError(
+      "The backend returned an unexpected setup-script response.",
+    );
+  }
+
+  return payload;
+}
+
+async function postJson(
+  path: string,
+  body: VerifiedEmployeeProfile,
+): Promise<unknown> {
   const baseUrl = process.env.NEXT_PUBLIC_API_URL;
   if (!baseUrl) {
     throw new ApiClientError("Boardly backend URL is not configured.");
@@ -27,16 +59,13 @@ export async function generateOnboardingPlan(
 
   let response: Response;
   try {
-    response = await fetch(
-      `${baseUrl.replace(/\/+$/, "")}/onboarding/plans/generate`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(employee),
+    response = await fetch(`${baseUrl.replace(/\/+$/, "")}${path}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
       },
-    );
+      body: JSON.stringify(body),
+    });
   } catch {
     throw new ApiClientError("Unable to reach the Boardly backend.");
   }
@@ -44,10 +73,6 @@ export async function generateOnboardingPlan(
   const payload = await readJsonPayload(response);
   if (!response.ok) {
     throw new ApiClientError(extractErrorMessage(payload));
-  }
-
-  if (!isPlannedOnboardingResult(payload)) {
-    throw new ApiClientError("The backend returned an unexpected response.");
   }
 
   return payload;
@@ -116,6 +141,33 @@ function isPlannedOnboardingResult(
   }
 
   return isRecord(value.plan) && Array.isArray(value.policy_decisions);
+}
+
+function isSetupScriptPreview(value: unknown): value is SetupScriptPreview {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  return (
+    typeof value.employee_id === "string" &&
+    isOperatingSystem(value.operating_system) &&
+    value.shell === "powershell" &&
+    typeof value.filename === "string" &&
+    isStringArray(value.software_ids) &&
+    isStringArray(value.executable_commands) &&
+    isStringArray(value.manual_steps) &&
+    typeof value.content === "string" &&
+    value.requires_human_review === true &&
+    value.auto_execute === false
+  );
+}
+
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((item) => typeof item === "string");
+}
+
+function isOperatingSystem(value: unknown): value is OperatingSystem {
+  return value === "windows" || value === "macos" || value === "linux";
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
