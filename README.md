@@ -35,6 +35,8 @@ Deterministic onboarding-plan generation now exists for verified employee profil
 
 The deterministic onboarding planner is now exposed through a FastAPI endpoint.
 
+Safe Windows setup-script previews can now be generated for deterministic onboarding plans.
+
 ## Backend Development
 
 Create and activate a Python 3.14 virtual environment:

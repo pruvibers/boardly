@@ -54,3 +54,15 @@ curl.exe -X POST http://localhost:8000/onboarding/plans/generate `
   -H "Content-Type: application/json" `
   -d '{"employee_id":"emp-001","full_name":"Aylin Demir","work_email":"aylin.demir@example.com","role_id":"backend-junior","department":"Engineering","team_id":"backend","seniority":"junior","operating_system":"windows","location":"Istanbul","manager_id":"mgr-001","notes":null}'
 ```
+
+## Safe Setup Script Preview
+
+`POST /onboarding/setup-script/preview` previews a Windows PowerShell setup script for a verified employee profile. The MVP supports Windows PowerShell only. Software selections come from the deterministic onboarding planner, commands are generated through a strict `winget` allowlist, and Company VPN installation remains a manual IT-approved step. Scripts are previewed only: Boardly never executes generated scripts, and human review is required.
+
+Example request:
+
+```powershell
+curl.exe -X POST http://localhost:8000/onboarding/setup-script/preview `
+  -H "Content-Type: application/json" `
+  -d '{"employee_id":"emp-001","full_name":"Aylin Demir","work_email":"aylin.demir@example.com","role_id":"backend-junior","department":"Engineering","team_id":"backend","seniority":"junior","operating_system":"windows","location":"Istanbul","manager_id":"mgr-001","notes":null}'
+```
