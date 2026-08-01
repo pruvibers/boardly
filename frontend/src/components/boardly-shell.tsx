@@ -16,9 +16,28 @@ export function BoardlyShell({ children }: BoardlyShellProps) {
 
         <nav aria-label="Primary" className="mt-10 space-y-1.5">
           <a
+            href="#workspace-overview"
+            className="flex items-center gap-3 rounded-xl px-3.5 py-3 text-sm font-semibold text-gray-600 transition hover:bg-[#F1EBFD] hover:text-[#6E36E4] focus:outline-none focus:ring-2 focus:ring-[#6E36E4]/30"
+          >
+            <svg
+              aria-hidden="true"
+              className="h-5 w-5"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <path
+                d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+            <span>Workspace overview</span>
+          </a>
+          <a
             href="#new-onboarding"
-            aria-current="page"
-            className="flex items-center gap-3 rounded-xl bg-[#F1EBFD] px-3.5 py-3 text-sm font-semibold text-[#6E36E4]"
+            className="flex items-center gap-3 rounded-xl px-3.5 py-3 text-sm font-semibold text-gray-600 transition hover:bg-[#F1EBFD] hover:text-[#6E36E4] focus:outline-none focus:ring-2 focus:ring-[#6E36E4]/30"
           >
             <svg
               aria-hidden="true"
@@ -36,6 +55,26 @@ export function BoardlyShell({ children }: BoardlyShellProps) {
             </svg>
             <span>New onboarding</span>
           </a>
+          <a
+            href="#session-employees"
+            className="flex items-center gap-3 rounded-xl px-3.5 py-3 text-sm font-semibold text-gray-600 transition hover:bg-[#F1EBFD] hover:text-[#6E36E4] focus:outline-none focus:ring-2 focus:ring-[#6E36E4]/30"
+          >
+            <svg
+              aria-hidden="true"
+              className="h-5 w-5"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <path
+                d="M16 20v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 10a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM22 20v-2a4 4 0 0 0-3-3.87M16 2.13a4 4 0 0 1 0 7.75"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+            <span>Session employees</span>
+          </a>
         </nav>
       </aside>
 
@@ -45,7 +84,7 @@ export function BoardlyShell({ children }: BoardlyShellProps) {
             <BoardlyLogo size="sm" className="lg:hidden" />
             <div className="hidden lg:block">
               <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#6E36E4]">
-                New onboarding
+                Onboarding workspace
               </p>
               <h1 className="mt-1 text-2xl font-bold tracking-tight text-gray-950">
                 Secure AI employee onboarding

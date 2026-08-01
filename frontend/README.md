@@ -38,3 +38,5 @@ Setup-preview integration uses `POST /onboarding/setup-script/preview`. Preview 
 ## UI Foundation
 
 The UI now uses the Boardly dashboard visual foundation. The underlying onboarding and setup-preview flows remain connected to the real backend, and unsupported prototype screens were intentionally not included.
+
+Successful generated plans are summarized in a session-only dashboard. Session records exist only in React memory, refreshing the page clears them, and all dashboard metrics are derived from real backend responses.

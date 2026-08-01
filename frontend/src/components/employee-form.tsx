@@ -47,7 +47,11 @@ const initialForm: VerifiedEmployeeProfile = {
   notes: "",
 };
 
-export function EmployeeForm() {
+type EmployeeFormProps = {
+  onPlanGenerated?: (result: PlannedOnboardingResult) => void;
+};
+
+export function EmployeeForm({ onPlanGenerated }: EmployeeFormProps) {
   const [form, setForm] = useState<VerifiedEmployeeProfile>(initialForm);
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState("");
@@ -72,6 +76,7 @@ export function EmployeeForm() {
     try {
       const nextResult = await generateOnboardingPlan(toEmployeePayload(form));
       setResult(nextResult);
+      onPlanGenerated?.(nextResult);
     } catch (caughtError) {
       setResult(null);
       setError(
