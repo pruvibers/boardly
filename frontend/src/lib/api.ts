@@ -81,6 +81,11 @@ export async function getPersistedOnboardingPlan(
   if (!isPlannedOnboardingResult(payload)) {
     throw new ApiClientError("The backend returned an unexpected plan.");
   }
+  if (payload.plan.employee.employee_id !== employeeId) {
+    throw new ApiClientError(
+      "The backend returned a plan for a different employee.",
+    );
+  }
   return payload;
 }
 
@@ -218,6 +223,7 @@ function isPlannedOnboardingResult(
     typeof plan.employee.employee_id === "string" &&
     typeof plan.employee.work_email === "string" &&
     typeof plan.employee.manager_id === "string" &&
+    isOptionalString(plan.employee.job_title) &&
     isOptionalString(plan.employee.manager_name) &&
     isOptionalString(plan.employee.manager_work_email) &&
     isOptionalString(plan.employee.manager_title) &&

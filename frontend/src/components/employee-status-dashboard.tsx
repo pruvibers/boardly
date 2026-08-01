@@ -5,12 +5,14 @@ import { useEffect } from "react";
 import { useOnboardingSession } from "@/components/onboarding-session-provider";
 import { StatusBadge, WorkspaceHeading } from "@/components/workspace-overview";
 import { SetupHandoffPackage } from "@/components/setup-handoff-package";
+import { employeeJobTitle } from "@/lib/employee-display";
 import {
   createEmptyDemoState,
   deriveOnboardingMetrics,
   deriveOnboardingStages,
   deriveOverallStatus,
 } from "@/lib/onboarding-status";
+import { newcomerPreviewHref } from "@/lib/routes";
 
 export function EmployeeStatusDashboard({ employeeId }: { employeeId: string }) {
   const {
@@ -74,7 +76,8 @@ export function EmployeeStatusDashboard({ employeeId }: { employeeId: string }) 
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <dl className="grid flex-1 gap-x-6 gap-y-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
             <Detail label="Employee ID" value={employee.employee_id} />
-            <Detail label="Role" value={employee.role_id} />
+            <Detail label="Job title" value={employeeJobTitle(employee)} />
+            <Detail label="Policy role template" value={employee.role_id} />
             <Detail label="Team" value={employee.team_id} />
             <Detail label="Department" value={employee.department} />
             <Detail label="Seniority" value={formatToken(employee.seniority)} />
@@ -90,7 +93,7 @@ export function EmployeeStatusDashboard({ employeeId }: { employeeId: string }) 
         <div className="mt-6 flex flex-wrap gap-2 border-t border-gray-100 pt-5">
           <LinkButton href={`/workspace/operator-review/${encodedId}`} label="Full operator policy review" />
           <Link
-            href={`/onboard/${encodedId}/overview`}
+            href={newcomerPreviewHref(employee.employee_id)}
             target="_blank"
             rel="noopener noreferrer"
             className="rounded-lg bg-[#6E36E4] px-4 py-2.5 text-sm font-bold text-white focus:outline-none focus:ring-2 focus:ring-[#6E36E4]/40"

@@ -85,3 +85,9 @@ Production requires backend authorization on every protected endpoint, real iden
 Boardly now derives organization department and manager choices from persisted plan data. New manager details include name, normalized work email, and optional title; the normalized email is used as a deterministic manager ID when no explicit ID exists. Legacy manager-ID-only plans remain compatible, and custom organization labels do not bypass deterministic role policy.
 
 Newcomer software progress is synchronized through the local demo-state API. Boardly intelligence explains deterministic recommendation and policy rationale without claiming a live AI call. Admins may download a reviewed Windows PowerShell setup handoff ZIP containing documentation, the exact backend preview, a manifest, and SHA-256 checksums. Boardly never executes the package, and Linux shell export is not implemented.
+
+## Employee Identity And Roles
+
+Company `job_title` is stored as visible employee metadata and may be extended from persisted plan data. The closed `role_id` catalog remains Boardly's verified policy role template and continues to determine software, access, documents, and policy decisions.
+
+Admin newcomer-preview URLs are generated directly from each employee row's stable ID. The route employee ID is used to load both the persisted plan and demo state from SQLite; a mismatched response is rejected rather than rendering another employee.

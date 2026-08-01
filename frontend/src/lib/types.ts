@@ -39,6 +39,7 @@ export type VerifiedEmployeeProfile = {
   full_name: string;
   work_email: string;
   role_id: string;
+  job_title?: string | null;
   department: string;
   team_id: string;
   seniority: SeniorityLevel;

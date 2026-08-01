@@ -19,6 +19,7 @@ def make_employee(
     department: str = "Engineering",
     operating_system: OperatingSystem = OperatingSystem.windows,
     notes: str | None = None,
+    job_title: str | None = None,
 ) -> VerifiedEmployeeProfile:
     return VerifiedEmployeeProfile.model_validate(
         {
@@ -26,6 +27,7 @@ def make_employee(
             "full_name": "Aylin Demir",
             "work_email": "aylin.demir@example.com",
             "role_id": role_id,
+            "job_title": job_title,
             "department": department,
             "team_id": "backend",
             "seniority": seniority,
@@ -59,6 +61,23 @@ def test_backend_junior_plan_is_generated_successfully() -> None:
 
     assert result.plan.employee.role_id == "backend-junior"
     assert result.plan.software_ids
+
+
+def test_job_title_does_not_change_role_template_policy_results() -> None:
+    network_specialist = generate_onboarding_plan(
+        make_employee(job_title="Network Specialist")
+    )
+    customer_analyst = generate_onboarding_plan(
+        make_employee(job_title="Customer Platform Analyst")
+    )
+
+    assert (
+        network_specialist.plan.access_recommendations
+        == customer_analyst.plan.access_recommendations
+    )
+    assert network_specialist.policy_decisions == customer_analyst.policy_decisions
+    assert network_specialist.plan.software_ids == customer_analyst.plan.software_ids
+    assert network_specialist.plan.document_ids == customer_analyst.plan.document_ids
 
 
 def test_platform_engineer_plan_is_generated_successfully() -> None:

@@ -46,9 +46,9 @@ export function BoardlyShell({ children }: { children: ReactNode }) {
 
       <div className="lg:pl-72">
         <header className="sticky top-0 z-10 border-b border-[var(--boardly-border)] bg-white/95 px-5 py-4 backdrop-blur sm:px-8 lg:px-10">
-          <div className="flex items-center justify-between gap-4">
-            <BoardlyLogo size="sm" className="lg:hidden" />
-            <div className="hidden lg:block">
+          <div className="flex min-w-0 items-center justify-between gap-4">
+            <BoardlyLogo size="sm" className="shrink-0 lg:hidden" />
+            <div className="hidden min-w-0 lg:block">
               <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#6E36E4]">
                 HR/IT demo control plane
               </p>
@@ -56,15 +56,13 @@ export function BoardlyShell({ children }: { children: ReactNode }) {
                 Persistent onboarding operations
               </h1>
             </div>
-            <div className="flex items-center gap-3">
-              <p className="hidden border-l-2 border-amber-400 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-950 sm:block">
-                AI recommends. Policy restricts. Humans approve.
-              </p>
-              <div className="lg:hidden">
-                <SignOutButton label="Switch role" />
-              </div>
+            <div className="shrink-0 lg:hidden">
+              <SignOutButton label="Switch role" />
             </div>
           </div>
+          <p className="mt-3 hidden max-w-full border-l-2 border-amber-400 bg-amber-50 px-3 py-2 text-xs font-semibold leading-5 text-amber-950 sm:block lg:ml-auto lg:w-fit">
+            AI recommends. Policy restricts. Humans approve.
+          </p>
           <nav aria-label="Mobile workspace" className="mt-3 flex gap-2 overflow-x-auto lg:hidden">
             {navigation.map((item) => (
               <Link

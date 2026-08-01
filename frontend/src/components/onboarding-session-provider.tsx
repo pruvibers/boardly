@@ -36,8 +36,6 @@ export type DemoSaveStatus = "idle" | "saving" | "saved" | "error";
 
 type OnboardingSessionContextValue = {
   results: PlannedOnboardingResult[];
-  selectedEmployeeId: string | null;
-  selectedResult: PlannedOnboardingResult | null;
   demoStates: Record<string, PersistedDemoState>;
   taskCompletionOverrides: TaskCompletionOverrides;
   documentReviewOverrides: DocumentReviewOverrides;
@@ -50,10 +48,8 @@ type OnboardingSessionContextValue = {
   isHydrating: boolean;
   hydratePlans: () => Promise<void>;
   hydrateWorkspace: () => Promise<void>;
-  hydrateEmployee: (employeeId: string) => Promise<void>;
+  hydrateEmployee: (employeeId: string) => Promise<boolean>;
   recordPlan: (result: PlannedOnboardingResult) => void;
-  selectEmployee: (employeeId: string) => void;
-  clearSelection: () => void;
   setTaskCompleted: (
     employeeId: string,
     taskId: string,
@@ -97,9 +93,6 @@ const OnboardingSessionContext =
 
 export function OnboardingSessionProvider({ children }: { children: ReactNode }) {
   const [results, setResults] = useState<PlannedOnboardingResult[]>([]);
-  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(
-    null,
-  );
   const [demoStates, setDemoStates] = useState<
     Record<string, PersistedDemoState>
   >({});
@@ -111,11 +104,7 @@ export function OnboardingSessionProvider({ children }: { children: ReactNode })
   const demoStatesRef = useRef<Record<string, PersistedDemoState>>({});
   const saveQueuesRef = useRef<Record<string, Promise<PersistedDemoState>>>({});
   const setupManualStepsRef = useRef<Record<string, string[]>>({});
-
-  const selectedResult =
-    results.find(
-      (result) => result.plan.employee.employee_id === selectedEmployeeId,
-    ) ?? null;
+  const hydrationRequestRef = useRef(0);
 
   const storeDemoStates = useCallback(
     (nextStates: Record<string, PersistedDemoState>) => {
@@ -208,6 +197,7 @@ export function OnboardingSessionProvider({ children }: { children: ReactNode })
 
   const hydrateEmployee = useCallback(
     async (employeeId: string) => {
+      const requestId = ++hydrationRequestRef.current;
       setIsHydrating(true);
       setHydrationError("");
       try {
@@ -215,16 +205,25 @@ export function OnboardingSessionProvider({ children }: { children: ReactNode })
           getPersistedOnboardingPlan(employeeId),
           getPersistedDemoState(employeeId),
         ]);
+        if (requestId !== hydrationRequestRef.current) return false;
+        if (result.plan.employee.employee_id !== employeeId) {
+          throw new Error("The persisted plan did not match the requested employee.");
+        }
         setResults((current) => upsertResult(current, result));
         storeDemoStates({
           ...demoStatesRef.current,
           [employeeId]: state,
         });
-        setSelectedEmployeeId(employeeId);
+        return true;
       } catch {
-        setHydrationError("This persisted onboarding plan could not be loaded.");
+        if (requestId === hydrationRequestRef.current) {
+          setHydrationError("This persisted onboarding plan could not be loaded.");
+        }
+        return false;
       } finally {
-        setIsHydrating(false);
+        if (requestId === hydrationRequestRef.current) {
+          setIsHydrating(false);
+        }
       }
     },
     [storeDemoStates],
@@ -239,27 +238,9 @@ export function OnboardingSessionProvider({ children }: { children: ReactNode })
         [employeeId]: createEmptyDemoState(),
       });
       delete setupManualStepsRef.current[employeeId];
-      setSelectedEmployeeId(employeeId);
     },
     [storeDemoStates],
   );
-
-  const selectEmployee = useCallback(
-    (employeeId: string) => {
-      if (
-        results.some(
-          (result) => result.plan.employee.employee_id === employeeId,
-        )
-      ) {
-        setSelectedEmployeeId(employeeId);
-      }
-    },
-    [results],
-  );
-
-  const clearSelection = useCallback(() => {
-    setSelectedEmployeeId(null);
-  }, []);
 
   const setTaskCompleted = useCallback(
     (employeeId: string, taskId: string, completed: boolean) => {
@@ -451,8 +432,6 @@ export function OnboardingSessionProvider({ children }: { children: ReactNode })
   const value = useMemo<OnboardingSessionContextValue>(
     () => ({
       results,
-      selectedEmployeeId,
-      selectedResult,
       demoStates,
       taskCompletionOverrides,
       documentReviewOverrides,
@@ -467,8 +446,6 @@ export function OnboardingSessionProvider({ children }: { children: ReactNode })
       hydrateWorkspace,
       hydrateEmployee,
       recordPlan,
-      selectEmployee,
-      clearSelection,
       setTaskCompleted,
       setDocumentReviewed,
       setSoftwareConfirmed,
@@ -482,7 +459,6 @@ export function OnboardingSessionProvider({ children }: { children: ReactNode })
     [
       clearDemoDocumentSignature,
       clearDemoItTicket,
-      clearSelection,
       demoStates,
       documentReceipts,
       documentReviewOverrides,
@@ -495,9 +471,6 @@ export function OnboardingSessionProvider({ children }: { children: ReactNode })
       recordPlan,
       results,
       saveStatusByEmployee,
-      selectEmployee,
-      selectedEmployeeId,
-      selectedResult,
       setDocumentReceived,
       setDocumentReviewed,
       setSoftwareConfirmed,

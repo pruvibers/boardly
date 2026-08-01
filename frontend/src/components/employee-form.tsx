@@ -3,6 +3,7 @@
 import { useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { ApiClientError, generateOnboardingPlan } from "@/lib/api";
 import { OnboardingResult } from "@/components/onboarding-result";
+import { policyRoleOptions } from "@/lib/employee-display";
 import type {
   OperatingSystem,
   PlannedOnboardingResult,
@@ -10,12 +11,15 @@ import type {
   VerifiedEmployeeProfile,
 } from "@/lib/types";
 
-const roleOptions = [
-  { label: "Software Engineering Intern", value: "software-engineering-intern" },
-  { label: "Backend Junior", value: "backend-junior" },
-  { label: "Backend Mid", value: "backend-mid" },
-  { label: "Backend Senior", value: "backend-senior" },
-  { label: "Platform Engineer", value: "platform-engineer" },
+const defaultJobTitles = [
+  "Software Engineering Intern",
+  "Backend Engineer I",
+  "Backend Engineer II",
+  "Senior Backend Engineer",
+  "Platform Engineer",
+  "Network Specialist",
+  "Data Enablement Engineer",
+  "Customer Platform Analyst",
 ];
 
 const defaultDepartments = [
@@ -42,6 +46,7 @@ const operatingSystemOptions: { label: string; value: OperatingSystem }[] = [
 ];
 
 type EmployeeFormState = VerifiedEmployeeProfile & {
+  job_title: string;
   manager_name: string;
   manager_work_email: string;
   manager_title: string;
@@ -60,6 +65,7 @@ const initialForm: EmployeeFormState = {
   full_name: "",
   work_email: "",
   role_id: "backend-junior",
+  job_title: "Backend Engineer I",
   department: "Engineering",
   team_id: "",
   seniority: "junior",
@@ -87,6 +93,9 @@ export function EmployeeForm({
   const [departmentMode, setDepartmentMode] = useState<"catalog" | "new">(
     "catalog",
   );
+  const [jobTitleMode, setJobTitleMode] = useState<"catalog" | "new">(
+    "catalog",
+  );
   const [managerSelection, setManagerSelection] = useState("new");
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState("");
@@ -96,6 +105,16 @@ export function EmployeeForm({
       distinctCaseInsensitive([
         ...defaultDepartments,
         ...existingPlans.map((item) => item.plan.employee.department),
+      ]),
+    [existingPlans],
+  );
+  const jobTitleOptions = useMemo(
+    () =>
+      distinctCaseInsensitive([
+        ...defaultJobTitles,
+        ...existingPlans.flatMap((item) =>
+          item.plan.employee.job_title ? [item.plan.employee.job_title] : [],
+        ),
       ]),
     [existingPlans],
   );
@@ -119,6 +138,16 @@ export function EmployeeForm({
     }
     setDepartmentMode("catalog");
     updateField("department", value);
+  }
+
+  function selectJobTitle(value: string) {
+    if (value === "__new__") {
+      setJobTitleMode("new");
+      updateField("job_title", "");
+      return;
+    }
+    setJobTitleMode("catalog");
+    updateField("job_title", value);
   }
 
   function selectManager(value: string) {
@@ -153,12 +182,17 @@ export function EmployeeForm({
       setError("New department name must not be blank.");
       return;
     }
+    const jobTitle = canonicalCatalogValue(form.job_title, jobTitleOptions);
+    if (!jobTitle) {
+      setError("New job title must not be blank.");
+      return;
+    }
 
     setIsPending(true);
     setError("");
     try {
       const nextResult = await generateOnboardingPlan(
-        toEmployeePayload({ ...form, department }),
+        toEmployeePayload({ ...form, department, job_title: jobTitle }),
       );
       setResult(nextResult);
       onPlanGenerated?.(nextResult);
@@ -199,7 +233,24 @@ export function EmployeeForm({
           </FormSection>
 
           <FormSection number="02" title="Organization" description="Role policy remains deterministic even when organization labels are extended.">
-            <SelectField id="role_id" label="Role" required value={form.role_id} options={roleOptions} onChange={(value) => updateField("role_id", value)} />
+            <div>
+              <label htmlFor="job_title" className={labelClassName}>Job title <Required /></label>
+              <select id="job_title" required value={jobTitleMode === "new" ? "__new__" : form.job_title} onChange={(event) => selectJobTitle(event.target.value)} className={fieldClassName}>
+                {jobTitleOptions.map((title) => <option key={title} value={title}>{title}</option>)}
+                <option value="__new__">Add a new job title…</option>
+              </select>
+              {jobTitleMode === "new" ? (
+                <label className="mt-3 block" htmlFor="new_job_title">
+                  <span className={labelClassName}>New job title <Required /></span>
+                  <input id="new_job_title" required value={form.job_title} onChange={(event) => updateField("job_title", event.target.value)} className={fieldClassName} />
+                </label>
+              ) : null}
+              <p className={helperClassName}>Job titles are drawn from persisted employee plans and can be extended for each organization.</p>
+            </div>
+            <div>
+              <SelectField id="role_id" label="Policy role template" required value={form.role_id} options={policyRoleOptions} onChange={(value) => updateField("role_id", value)} />
+              <p className={helperClassName}>Boardly uses this verified template to determine software, access and onboarding recommendations. Your company job title remains visible separately.</p>
+            </div>
             <div>
               <label htmlFor="department" className={labelClassName}>Department <Required /></label>
               <select id="department" required value={departmentMode === "new" ? "__new__" : form.department} onChange={(event) => selectDepartment(event.target.value)} className={fieldClassName}>
@@ -251,7 +302,8 @@ export function EmployeeForm({
                 <dl className="mt-4 grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
                   <ReviewItem label="Employee" value={form.full_name || "Not entered"} />
                   <ReviewItem label="Work email" value={form.work_email || "Not entered"} />
-                  <ReviewItem label="Role" value={formatOption(form.role_id, roleOptions)} />
+                  <ReviewItem label="Job title" value={form.job_title || "Not entered"} />
+                  <ReviewItem label="Policy role template" value={formatOption(form.role_id, policyRoleOptions)} />
                   <ReviewItem label="Department" value={form.department || "Not entered"} />
                   <ReviewItem label="Team" value={form.team_id || "Not entered"} />
                   <ReviewItem label="Seniority" value={formatToken(form.seniority)} />
@@ -282,6 +334,7 @@ function toEmployeePayload(form: EmployeeFormState): VerifiedEmployeeProfile {
     full_name: form.full_name.trim(),
     work_email: form.work_email.trim().toLowerCase(),
     role_id: form.role_id,
+    job_title: form.job_title.trim(),
     department: form.department.trim(),
     team_id: form.team_id.trim(),
     seniority: form.seniority,
@@ -327,6 +380,10 @@ function distinctCaseInsensitive(values: string[]) {
 }
 
 function canonicalDepartment(value: string, options: string[]) {
+  return canonicalCatalogValue(value, options);
+}
+
+function canonicalCatalogValue(value: string, options: string[]) {
   const normalized = value.trim();
   if (!normalized) return "";
   return (

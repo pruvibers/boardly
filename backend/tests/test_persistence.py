@@ -85,6 +85,23 @@ def test_custom_department_is_preserved_in_plan_json(tmp_path: Path) -> None:
     assert persisted.plan.employee.department == "Developer Experience"
 
 
+def test_job_title_round_trips_through_persistence(tmp_path: Path) -> None:
+    database = make_database(tmp_path)
+    result = make_result("persist-title", "job-title@example.com")
+    employee = result.plan.employee.model_copy(
+        update={"job_title": "Customer Platform Analyst"}
+    )
+    result = result.model_copy(
+        update={"plan": result.plan.model_copy(update={"employee": employee})}
+    )
+
+    database.save_plan(result)
+
+    persisted = database.get_plan("persist-title")
+    assert persisted is not None
+    assert persisted.plan.employee.job_title == "Customer Platform Analyst"
+
+
 def test_plan_replacement_by_employee_id(tmp_path: Path) -> None:
     database = make_database(tmp_path)
     database.save_plan(make_result("persist-001", "first@example.com"))
