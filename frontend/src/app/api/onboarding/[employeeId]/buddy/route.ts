@@ -47,10 +47,13 @@ export async function POST(
     process.env.BOARDLY_BACKEND_URL ??
     process.env.NEXT_PUBLIC_API_URL ??
     "http://localhost:8000";
+  const sanitizedBackendUrl = backendUrl.endsWith("/")
+    ? backendUrl.slice(0, -1)
+    : backendUrl;
   let backendResponse: Response;
   try {
     backendResponse = await fetch(
-      `${backendUrl.replace(/\/+$/, "")}/onboarding/plans/${encodeURIComponent(employeeId)}/buddy`,
+      `${sanitizedBackendUrl}/onboarding/plans/${encodeURIComponent(employeeId)}/buddy`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },

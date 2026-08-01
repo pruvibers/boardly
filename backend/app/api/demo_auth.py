@@ -1,3 +1,4 @@
+import os
 from typing import Literal
 
 from fastapi import APIRouter, HTTPException
@@ -8,7 +9,7 @@ from app.persistence.database import BoardlyDatabase, normalize_work_email
 
 router = APIRouter(prefix="/demo-auth", tags=["demo-auth"])
 
-DEMO_PASSWORD = "123"
+DEMO_AUTH_CREDENTIAL = os.getenv("DEMO_AUTH_CREDENTIAL", "123")
 ADMIN_EMAIL = "admin@boardly.demo"
 
 
@@ -29,7 +30,7 @@ class DemoLoginResult(BaseModel):
 @router.post("/login", response_model=DemoLoginResult)
 def demo_login(credentials: DemoLoginRequest) -> DemoLoginResult:
     normalized_email = normalize_work_email(credentials.email)
-    if credentials.password != DEMO_PASSWORD:
+    if credentials.password != DEMO_AUTH_CREDENTIAL:
         raise HTTPException(status_code=401, detail="Invalid demo credentials.")
 
     if credentials.role == "admin":

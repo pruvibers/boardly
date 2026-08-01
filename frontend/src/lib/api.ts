@@ -171,9 +171,10 @@ async function requestJson(
     throw new ApiClientError("Boardly backend URL is not configured.");
   }
 
+  const sanitizedBaseUrl = baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
   let response: Response;
   try {
-    response = await fetch(`${baseUrl.replace(/\/+$/, "")}${path}`, {
+    response = await fetch(`${sanitizedBaseUrl}${path}`, {
       method,
       headers: body ? { "Content-Type": "application/json" } : undefined,
       body: body ? JSON.stringify(body) : undefined,
