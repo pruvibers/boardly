@@ -1,9 +1,11 @@
 from fastapi import FastAPI
 
 from app.api.onboarding import router as onboarding_router
+from app.api.setup_scripts import router as setup_scripts_router
 
 app = FastAPI(title="Boardly Backend")
 app.include_router(onboarding_router)
+app.include_router(setup_scripts_router)
 
 
 @app.get("/")
