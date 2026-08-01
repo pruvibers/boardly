@@ -69,6 +69,18 @@ def test_manager_details_are_normalized_and_serialized() -> None:
     assert employee["manager_id"] == "jane.smith@example.com"
 
 
+def test_job_title_is_normalized_and_serialized() -> None:
+    response = post_generate_plan(
+        make_employee_payload(job_title="  Data Enablement Engineer  ")
+    )
+
+    assert response.status_code == 200
+    assert (
+        response.json()["plan"]["employee"]["job_title"]
+        == "Data Enablement Engineer"
+    )
+
+
 def test_generate_plan_returns_access_recommendations() -> None:
     response = post_generate_plan(make_employee_payload())
 

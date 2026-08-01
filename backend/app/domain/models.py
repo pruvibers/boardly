@@ -89,6 +89,7 @@ class VerifiedEmployeeProfile(BaseModel):
     full_name: str
     work_email: str
     role_id: str
+    job_title: str | None = None
     department: str
     team_id: str
     seniority: SeniorityLevel
@@ -123,6 +124,16 @@ class VerifiedEmployeeProfile(BaseModel):
     @classmethod
     def work_email_must_have_basic_company_format(cls, value: str) -> str:
         return _normalize_company_email(value, "work_email")
+
+    @field_validator("job_title")
+    @classmethod
+    def normalize_optional_job_title(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("job_title must not be blank")
+        return normalized
 
     @field_validator("manager_name", "manager_title")
     @classmethod

@@ -55,6 +55,8 @@ Newcomer routes:
 
 Admin newcomer-preview links open in a new tab and hydrate the requested employee from the backend rather than relying on shared React state.
 
+Each preview URL is generated directly from the employee row ID. The route ID is the source of truth for both plan and demo-state hydration, and Boardly rejects a loaded plan whose employee ID does not match the route.
+
 ## Demo Boundaries
 
 Plans and interactive demo progress are stored in the local Boardly SQLite database and restored after refresh. Demo IT tickets are local only and are not sent externally. Document acknowledgments are non-binding, software confirmations are self-reported, and PDF review summaries contain demo summary data rather than source company documents.
@@ -67,6 +69,10 @@ The HR/IT form builds its department options from a small default catalog plus d
 
 New submissions collect manager full name and normalized work email, with an optional title. Existing managers are derived from persisted plan data and can be selected again. The normalized manager email becomes the deterministic `manager_id` for a new manager unless an existing explicit ID is available. Legacy plans containing only `manager_id` remain compatible.
 
+Company job titles are visible organization metadata. The form offers defaults and distinct `job_title` values found in persisted plans, with an inline custom-add option that trims values and avoids case-insensitive duplicates. Legacy plans without `job_title` display a friendly fallback derived from their existing role ID.
+
+The separate Policy role template selector contains only backend-supported `role_id` values. Custom job titles never become policy role IDs and do not alter deterministic software, access, document, or policy behavior.
+
 Software confirmation is self-reported and synchronized through the persisted demo-state API across newcomer Overview, Resources, Setup, and the HR employee dashboard. Boardly does not detect or verify installed software.
 
 ## Boardly Intelligence
@@ -78,3 +84,13 @@ Boardly intelligence and the onboarding guide use deterministic plan, policy, ve
 The HR employee dashboard can prepare a fresh real backend setup preview and, after explicit command-review acknowledgment, download an admin-only ZIP containing `README.md`, `boardly-setup.ps1`, `manifest.json`, and `SHA256SUMS.txt`. The PowerShell content is exactly the backend preview response; the browser does not generate additional commands.
 
 Boardly never executes the package. Execution, if approved, happens outside Boardly under authorized IT controls. Windows PowerShell is currently the only supported executable format, and Linux shell export is not implemented.
+
+## Multi-Employee Preview Regression
+
+With the backend and frontend running and an HR/IT admin session active:
+
+1. Open `/workspace/employees`.
+2. Open the newcomer preview for `EMP-1003 / At Aygunes` and confirm the new tab URL is `/onboard/EMP-1003/overview` and the page identifies At Aygunes.
+3. Open the newcomer preview for `EMP-1002 / Abdulkerim Akten` and confirm the new tab URL is `/onboard/EMP-1002/overview` and the page identifies Abdulkerim Akten.
+4. Keep both tabs open and navigate within each portal. Confirm neither tab switches to the other employee and each tab loads progress for its own route employee ID.
+5. Visit a nonexistent employee preview URL and confirm Boardly shows the unavailable-plan state rather than another persisted employee.

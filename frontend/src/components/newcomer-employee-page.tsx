@@ -18,25 +18,37 @@ export function NewcomerEmployeePage({
 }) {
   const router = useRouter();
   const {
-    clearSelection,
     hydrateEmployee,
     hydrationError,
     isHydrating,
     results,
     saveStatusByEmployee,
-    selectedEmployeeId,
   } = useOnboardingSession();
   const [previewEnded, setPreviewEnded] = useState(false);
+  const [hydratedEmployeeId, setHydratedEmployeeId] = useState<string | null>(
+    null,
+  );
+  const [isRouteLoading, setIsRouteLoading] = useState(true);
   const result = results.find(
     (item) => item.plan.employee.employee_id === employeeId,
   );
 
   useEffect(() => {
-    void hydrateEmployee(employeeId);
+    let isActive = true;
+    setHydratedEmployeeId(null);
+    setIsRouteLoading(true);
+    setPreviewEnded(false);
+    void hydrateEmployee(employeeId).then((loaded) => {
+      if (!isActive) return;
+      setHydratedEmployeeId(loaded ? employeeId : null);
+      setIsRouteLoading(false);
+    });
+    return () => {
+      isActive = false;
+    };
   }, [employeeId, hydrateEmployee]);
 
   function endPreview() {
-    clearSelection();
     setPreviewEnded(true);
   }
 
@@ -48,7 +60,12 @@ export function NewcomerEmployeePage({
     );
   }
 
-  if (!result || selectedEmployeeId !== employeeId) {
+  if (
+    !result ||
+    hydratedEmployeeId !== employeeId ||
+    result.plan.employee.employee_id !== employeeId
+  ) {
+    const loading = isRouteLoading || isHydrating;
     return (
       <NewcomerShell>
         <section className="mx-auto max-w-3xl rounded-2xl border border-purple-100 bg-white px-6 py-12 text-center shadow-soft">
@@ -56,11 +73,11 @@ export function NewcomerEmployeePage({
             Newcomer onboarding
           </p>
           <h1 className="mt-3 text-2xl font-bold text-gray-950">
-            {isHydrating ? "Loading your onboarding plan" : "Plan unavailable"}
+            {loading ? `Loading plan for ${employeeId}` : "Plan unavailable"}
           </h1>
           <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-gray-600" role={hydrationError ? "alert" : undefined}>
-            {isHydrating
-              ? "Boardly is loading the persisted plan and demo progress."
+            {loading
+              ? `Boardly is loading the persisted plan and demo progress for ${employeeId}.`
               : hydrationError ||
                 "No active onboarding preview is available for this route."}
           </p>

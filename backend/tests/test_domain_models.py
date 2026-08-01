@@ -64,6 +64,23 @@ def test_valid_verified_employee_profile() -> None:
     assert profile.work_email == "aylin.demir@example.com"
 
 
+def test_legacy_employee_profile_without_job_title_remains_valid() -> None:
+    profile = make_employee_profile()
+
+    assert profile.job_title is None
+
+
+def test_job_title_is_trimmed() -> None:
+    profile = make_employee_profile(job_title="  Network Specialist  ")
+
+    assert profile.job_title == "Network Specialist"
+
+
+def test_job_title_rejects_blank_value_when_supplied() -> None:
+    with pytest.raises(ValidationError):
+        make_employee_profile(job_title="   ")
+
+
 def test_verified_employee_profile_rejects_blank_required_field() -> None:
     with pytest.raises(ValidationError):
         make_employee_profile(full_name=" ")

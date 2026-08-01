@@ -10,6 +10,7 @@ import {
   type DemoItTicket,
 } from "@/components/onboarding-session-provider";
 import { SetupScriptPreviewPanel } from "@/components/setup-script-preview";
+import { employeeJobTitle } from "@/lib/employee-display";
 import type {
   AccessRecommendation,
   ChecklistItem,
@@ -587,7 +588,8 @@ function WelcomeHeader({
           {plan.welcome_summary}
         </p>
         <dl className="mt-7 grid gap-x-6 gap-y-4 border-t border-white/20 pt-6 text-sm sm:grid-cols-2 lg:grid-cols-3">
-          <HeaderDetail label="Role ID" value={employee.role_id} />
+          <HeaderDetail label="Job title" value={employeeJobTitle(employee)} />
+          <HeaderDetail label="Policy role template" value={employee.role_id} />
           <HeaderDetail label="Team ID" value={employee.team_id} />
           <HeaderDetail label="Department" value={employee.department} />
           <HeaderDetail

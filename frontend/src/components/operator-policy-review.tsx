@@ -5,6 +5,8 @@ import { useEffect } from "react";
 import { OnboardingResult } from "@/components/onboarding-result";
 import { useOnboardingSession } from "@/components/onboarding-session-provider";
 import { WorkspaceHeading } from "@/components/workspace-overview";
+import { employeeJobTitle } from "@/lib/employee-display";
+import { newcomerPreviewHref } from "@/lib/routes";
 
 export function OperatorPolicyReview({ employeeId }: { employeeId: string }) {
   const { hydrateEmployee, hydrationError, isHydrating, results } =
@@ -49,8 +51,9 @@ export function OperatorPolicyReview({ employeeId }: { employeeId: string }) {
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <h3 className="text-xl font-bold text-gray-950">{employee.full_name}</h3>
+            <p className="mt-1 text-sm font-semibold text-[var(--boardly-muted)]">{employeeJobTitle(employee)}</p>
             <p className="mt-2 text-sm text-gray-600">
-              {employee.employee_id} · {employee.role_id} · {employee.team_id}
+              {employee.employee_id} · Policy template: {employee.role_id} · {employee.team_id}
             </p>
             <p className="mt-1 text-xs text-gray-500">
               Manager: {employee.manager_name ?? employee.manager_id}
@@ -61,7 +64,7 @@ export function OperatorPolicyReview({ employeeId }: { employeeId: string }) {
             <Link href={`/workspace/employees/${encodedId}`} className="rounded-lg border border-purple-200 px-3 py-2 text-sm font-bold text-[#6E36E4]">
               Back to status dashboard
             </Link>
-            <Link href={`/onboard/${encodedId}/overview`} target="_blank" rel="noopener noreferrer" className="rounded-lg bg-[#6E36E4] px-3 py-2 text-sm font-bold text-white">
+            <Link href={newcomerPreviewHref(employee.employee_id)} target="_blank" rel="noopener noreferrer" className="rounded-lg bg-[#6E36E4] px-3 py-2 text-sm font-bold text-white">
               Preview newcomer experience
             </Link>
           </div>

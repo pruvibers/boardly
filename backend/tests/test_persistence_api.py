@@ -47,6 +47,37 @@ def test_missing_persisted_plan_returns_404() -> None:
     assert response.status_code == 404
 
 
+def test_employee_specific_plan_and_demo_state_endpoints_do_not_cross() -> None:
+    abdulkerim = employee_payload("EMP-1002", "abdulkerim@example.com")
+    abdulkerim["full_name"] = "Abdulkerim Akten"
+    at = employee_payload("EMP-1003", "at@example.com")
+    at["full_name"] = "At Aygunes"
+    client.post("/onboarding/plans/generate", json=abdulkerim)
+    client.post("/onboarding/plans/generate", json=at)
+    abdulkerim_state = {
+        "task_completion_overrides": {},
+        "document_review_state": {},
+        "document_receipt_state": {},
+        "demo_acknowledgment_signer_names": {},
+        "software_confirmations": {},
+        "demo_it_tickets": {},
+        "setup_preview_generated": True,
+    }
+    at_state = {**abdulkerim_state, "setup_preview_generated": False}
+
+    client.put("/onboarding/plans/EMP-1002/demo-state", json=abdulkerim_state)
+    client.put("/onboarding/plans/EMP-1003/demo-state", json=at_state)
+    abdulkerim_plan = client.get("/onboarding/plans/EMP-1002").json()
+    at_plan = client.get("/onboarding/plans/EMP-1003").json()
+
+    assert abdulkerim_plan["plan"]["employee"]["employee_id"] == "EMP-1002"
+    assert abdulkerim_plan["plan"]["employee"]["full_name"] == "Abdulkerim Akten"
+    assert at_plan["plan"]["employee"]["employee_id"] == "EMP-1003"
+    assert at_plan["plan"]["employee"]["full_name"] == "At Aygunes"
+    assert client.get("/onboarding/plans/EMP-1002/demo-state").json() == abdulkerim_state
+    assert client.get("/onboarding/plans/EMP-1003/demo-state").json() == at_state
+
+
 def test_demo_state_put_and_get_endpoints() -> None:
     generated = client.post(
         "/onboarding/plans/generate",

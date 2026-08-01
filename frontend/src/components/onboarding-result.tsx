@@ -6,6 +6,7 @@ import type {
   PolicyDecision,
 } from "@/lib/types";
 import { SetupScriptPreviewPanel } from "@/components/setup-script-preview";
+import { employeeJobTitle } from "@/lib/employee-display";
 
 type OnboardingResultProps = {
   result: PlannedOnboardingResult;
@@ -53,7 +54,8 @@ export function OnboardingResult({ result }: OnboardingResultProps) {
           <Detail label="Employee ID" value={plan.employee.employee_id} />
           <Detail label="Full name" value={plan.employee.full_name} />
           <Detail label="Work email" value={plan.employee.work_email} />
-          <Detail label="Role" value={plan.employee.role_id} />
+          <Detail label="Job title" value={employeeJobTitle(plan.employee)} />
+          <Detail label="Policy role template" value={plan.employee.role_id} />
           <Detail label="Department" value={plan.employee.department} />
           <Detail label="Team" value={plan.employee.team_id} />
           <Detail label="Seniority" value={formatToken(plan.employee.seniority)} />

@@ -94,9 +94,11 @@ FastAPI remains a local demo API and must not be exposed publicly. Bind it to `1
 
 Demo IT tickets remain in SQLite and are not sent externally. Acknowledgments are non-binding, generated PDF summaries are demo-only, no access is provisioned, and the backend never executes setup scripts. The deliberate admin-only frontend handoff described below packages a reviewed preview for execution outside Boardly.
 
-## Organization And Manager Data
+## Organization, Role And Manager Data
 
 `VerifiedEmployeeProfile` supports optional `manager_name`, `manager_work_email`, and `manager_title` fields while preserving legacy `manager_id` payloads. When manager details are supplied, name and email are required, manager email is normalized, and the normalized email deterministically becomes `manager_id` unless an explicit existing ID is supplied. These fields serialize inside the validated plan JSON; no separate manager table is used.
+
+The optional `job_title` field stores a company's visible employee title. Supplied values are trimmed and blank values are rejected; legacy plans without the field remain valid. `job_title` is not a policy key: the existing supported `role_id` remains Boardly's verified policy role template and exclusively controls deterministic planning and access-policy behavior.
 
 Organization department labels are stored directly in each verified employee profile and persisted plan. They do not alter or bypass deterministic role and department validation.
 
