@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { DEMO_SESSION_COOKIE } from "@/lib/demo-session";
 
-export async function POST(request: Request) {
-  const response = NextResponse.redirect(new URL("/", request.url), 303);
+export async function POST() {
+  const response = NextResponse.redirect("http://localhost:3000/", 303);
   response.cookies.set(DEMO_SESSION_COOKIE, "", {
     httpOnly: true,
     sameSite: "lax",
