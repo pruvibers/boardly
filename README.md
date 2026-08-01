@@ -37,6 +37,8 @@ The deterministic onboarding planner is now exposed through a FastAPI endpoint.
 
 Safe Windows setup-script previews can now be generated for deterministic onboarding plans.
 
+The Next.js frontend foundation now exists in the frontend workspace.
+
 ## Backend Development
 
 Create and activate a Python 3.14 virtual environment:
