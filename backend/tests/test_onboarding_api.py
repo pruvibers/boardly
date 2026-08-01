@@ -46,8 +46,27 @@ def test_generate_plan_response_contains_plan_and_policy_decisions() -> None:
 def test_generate_plan_response_employee_matches_request() -> None:
     payload = make_employee_payload()
     response = post_generate_plan(payload)
+    employee = response.json()["plan"]["employee"]
 
-    assert response.json()["plan"]["employee"] == payload
+    assert all(employee[key] == value for key, value in payload.items())
+
+
+def test_manager_details_are_normalized_and_serialized() -> None:
+    payload = make_employee_payload(
+        manager_id="",
+        manager_name=" Jane Smith ",
+        manager_work_email=" JANE.SMITH@EXAMPLE.COM ",
+        manager_title=" Engineering Manager ",
+    )
+
+    response = post_generate_plan(payload)
+
+    assert response.status_code == 200
+    employee = response.json()["plan"]["employee"]
+    assert employee["manager_name"] == "Jane Smith"
+    assert employee["manager_work_email"] == "jane.smith@example.com"
+    assert employee["manager_title"] == "Engineering Manager"
+    assert employee["manager_id"] == "jane.smith@example.com"
 
 
 def test_generate_plan_returns_access_recommendations() -> None:

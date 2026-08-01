@@ -1,24 +1,30 @@
 "use client";
 
+import { useEffect } from "react";
 import { EmployeeForm } from "@/components/employee-form";
 import { useOnboardingSession } from "@/components/onboarding-session-provider";
 
 export function NewOnboardingWorkspace() {
-  const { recordPlan } = useOnboardingSession();
+  const { hydratePlans, recordPlan, results } = useOnboardingSession();
+
+  useEffect(() => {
+    void hydratePlans();
+  }, [hydratePlans]);
+
   return (
-    <div>
+    <div className="mx-auto max-w-6xl">
       <PageHeading
         title="Create a verified onboarding plan"
         description="Generate and persist a deterministic plan using verified employee attributes."
       />
-      <EmployeeForm onPlanGenerated={recordPlan} />
+      <EmployeeForm existingPlans={results} onPlanGenerated={recordPlan} />
     </div>
   );
 }
 
 function PageHeading({ title, description }: { title: string; description: string }) {
   return (
-    <header className="mb-6">
+    <header className="mb-6 max-w-3xl">
       <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#6E36E4]">
         HR/IT control plane
       </p>

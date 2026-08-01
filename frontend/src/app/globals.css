@@ -4,8 +4,20 @@
 
 :root {
   color-scheme: light;
-  background: #f7f9fb;
-  color: #172033;
+  --boardly-app: #f3f5f8;
+  --boardly-surface: #ffffff;
+  --boardly-elevated: #f8fafc;
+  --boardly-text: #172033;
+  --boardly-muted: #647084;
+  --boardly-accent: #6e36e4;
+  --boardly-success: #16845b;
+  --boardly-warning: #b56a08;
+  --boardly-danger: #c43d4b;
+  --boardly-border: #dfe4eb;
+  --boardly-focus: rgba(110, 54, 228, 0.3);
+  --boardly-ink: #101b31;
+  background: var(--boardly-app);
+  color: var(--boardly-text);
 }
 
 * {
@@ -19,8 +31,8 @@ html {
 body {
   min-height: 100%;
   margin: 0;
-  background: #f8f8fc;
-  color: #172033;
+  background: var(--boardly-app);
+  color: var(--boardly-text);
   font-family:
     Arial,
     Helvetica,

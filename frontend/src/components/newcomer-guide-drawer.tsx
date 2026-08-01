@@ -12,7 +12,12 @@ type GuideQuestion =
   | "software"
   | "unsigned"
   | "not_received"
-  | "tickets";
+  | "tickets"
+  | "software_reason"
+  | "policy_effect"
+  | "blocking"
+  | "inputs"
+  | "hr_review";
 
 type GuideAnswer = {
   heading: string;
@@ -44,6 +49,11 @@ const questions: Array<{ id: GuideQuestion; label: string }> = [
   { id: "unsigned", label: "Which documents are unsigned in the demo?" },
   { id: "not_received", label: "Which documents are not received?" },
   { id: "tickets", label: "Do I have any local demo tickets?" },
+  { id: "software_reason", label: "Why was this software recommended?" },
+  { id: "policy_effect", label: "What policy affected my access?" },
+  { id: "blocking", label: "What is currently blocking completion?" },
+  { id: "inputs", label: "Which input shaped my plan?" },
+  { id: "hr_review", label: "What should HR or IT review next?" },
 ];
 
 export function NewcomerGuideDrawer(props: NewcomerGuideDrawerProps) {
@@ -110,7 +120,7 @@ export function NewcomerGuideDrawer(props: NewcomerGuideDrawerProps) {
                   Onboarding guide
                 </h2>
                 <p className="mt-2 text-sm leading-6 text-gray-600">
-                  Answers use your plan and current React session state.
+                  Answers use your verified plan and locally persisted progress.
                 </p>
               </div>
               <button
@@ -226,6 +236,103 @@ function getGuideAnswer(
       rows: [
         { label: "Human approval required", value: String(approvalAccessCount) },
         { label: "Blocked by policy", value: String(blockedAccessCount) },
+      ],
+    };
+  }
+
+  if (question === "software_reason") {
+    return {
+      heading: "Why was this software recommended?",
+      paragraphs: [
+        `The Boardly planning engine selected ${result.plan.software_ids.length} compatible packages from the deterministic ${result.plan.employee.role_id} template for ${formatOperatingSystem(result.plan.employee.operating_system)}.`,
+      ],
+      rows: result.plan.software_ids.slice(0, 5).map((id) => ({
+        label: formatResourceLabel(id),
+        value: id,
+      })),
+    };
+  }
+
+  if (question === "policy_effect") {
+    const blocked = result.policy_decisions.filter(
+      (decision) => decision.decision === "blocked",
+    );
+    return {
+      heading: "What policy affected my access?",
+      paragraphs: [
+        "Every access recommendation is evaluated against deterministic role policy. Human approval remains required for allowed recommendations, while blocked decisions cannot move forward.",
+      ],
+      rows: [
+        { label: "Human approval required", value: String(approvalAccessCount) },
+        { label: "Policy blocks", value: String(blocked.length) },
+        ...blocked.slice(0, 3).map((decision) => ({
+          label: formatResourceLabel(decision.resource_id),
+          value: "Blocked",
+        })),
+      ],
+    };
+  }
+
+  if (question === "blocking") {
+    const remainingSoftware = result.plan.software_ids.filter(
+      (id) => softwareConfirmations[id] !== true,
+    ).length;
+    const remainingDocuments = result.plan.document_ids.filter(
+      (id) => documentReviewOverrides[id] !== true,
+    ).length;
+    return {
+      heading: "What is currently blocking completion?",
+      paragraphs: [
+        blockedAccessCount > 0
+          ? "Policy-blocked access is the highest-priority constraint."
+          : nextTask
+            ? `${nextTask.title} is the first incomplete checklist action.`
+            : "No checklist task is currently blocking completion.",
+      ],
+      rows: [
+        { label: "Policy blocks", value: String(blockedAccessCount) },
+        { label: "Documents to review", value: String(remainingDocuments) },
+        { label: "Software to confirm", value: String(remainingSoftware) },
+      ],
+    };
+  }
+
+  if (question === "inputs") {
+    const employee = result.plan.employee;
+    return {
+      heading: "Which input shaped my plan?",
+      paragraphs: [
+        "These verified attributes select deterministic role, software, document and policy rules. Notes do not control authorization.",
+      ],
+      rows: [
+        { label: "Role", value: employee.role_id },
+        { label: "Department", value: employee.department },
+        { label: "Seniority", value: formatToken(employee.seniority) },
+        { label: "Operating system", value: formatOperatingSystem(employee.operating_system) },
+        { label: "Team", value: employee.team_id },
+      ],
+    };
+  }
+
+  if (question === "hr_review") {
+    const priority =
+      blockedAccessCount > 0
+        ? "Review policy-blocked access"
+        : approvalAccessCount > 0
+          ? "Complete human access review"
+          : result.plan.document_ids.some(
+                (id) => documentReviewOverrides[id] !== true,
+              )
+            ? "Confirm document readiness"
+            : "Review setup readiness";
+    return {
+      heading: "What should HR or IT review next?",
+      paragraphs: [
+        `${priority} is the highest-priority operator action derived from the current plan and progress.`,
+      ],
+      rows: [
+        { label: "Policy blocks", value: String(blockedAccessCount) },
+        { label: "Awaiting approval", value: String(approvalAccessCount) },
       ],
     };
   }

@@ -45,6 +45,9 @@ export type VerifiedEmployeeProfile = {
   operating_system: OperatingSystem;
   location: string;
   manager_id: string;
+  manager_name?: string | null;
+  manager_work_email?: string | null;
+  manager_title?: string | null;
   notes: string | null;
 };
 

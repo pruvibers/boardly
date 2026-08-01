@@ -49,7 +49,7 @@ export function NewcomerShell({
   }, [isSessionInfoOpen]);
 
   return (
-    <div className="min-h-screen bg-[#F8F8FC] text-gray-950">
+    <div className="min-h-screen bg-[var(--boardly-app)] text-[var(--boardly-text)]">
       <header className="sticky top-0 z-20 border-b border-gray-200/80 bg-white/95 backdrop-blur">
         <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-3 px-5 py-2 sm:px-8 lg:px-10">
           <div className="flex min-w-0 items-center gap-3">
@@ -150,8 +150,8 @@ export function NewcomerShell({
                     aria-current={selected ? "page" : undefined}
                     className={`whitespace-nowrap rounded-lg px-3.5 py-2 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-[#6E36E4]/40 focus:ring-offset-1 ${
                       selected
-                        ? "bg-[#6E36E4] text-white shadow-sm"
-                        : "text-gray-600 hover:bg-purple-50 hover:text-[#6E36E4]"
+                        ? "bg-[var(--boardly-ink)] text-white shadow-sm"
+                        : "text-gray-600 hover:bg-violet-50 hover:text-[var(--boardly-accent)]"
                     }`}
                   >
                     {view.label}

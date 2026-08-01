@@ -79,3 +79,9 @@ uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 Boardly's signed HTTP-only cookie guards Next.js demo routes only. This is hackathon demo authentication, not production authentication, and the cookie does not authorize FastAPI endpoints. FastAPI remains a local demo API that must not be exposed publicly; bind it to `127.0.0.1` for presentations.
 
 Production requires backend authorization on every protected endpoint, real identity management, RBAC, CSRF review, secret management, and hardened session handling.
+
+## Phase 3 Demo Experience
+
+Boardly now derives organization department and manager choices from persisted plan data. New manager details include name, normalized work email, and optional title; the normalized email is used as a deterministic manager ID when no explicit ID exists. Legacy manager-ID-only plans remain compatible, and custom organization labels do not bypass deterministic role policy.
+
+Newcomer software progress is synchronized through the local demo-state API. Boardly intelligence explains deterministic recommendation and policy rationale without claiming a live AI call. Admins may download a reviewed Windows PowerShell setup handoff ZIP containing documentation, the exact backend preview, a manifest, and SHA-256 checksums. Boardly never executes the package, and Linux shell export is not implemented.

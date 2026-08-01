@@ -92,4 +92,14 @@ This is hackathon demo authentication, not production authentication. The Next.j
 
 FastAPI remains a local demo API and must not be exposed publicly. Bind it to `127.0.0.1` for presentations. Production requires backend authorization on every protected endpoint, real identity management, RBAC, CSRF review, secret management, and hardened session handling.
 
-Demo IT tickets remain in SQLite and are not sent externally. Acknowledgments are non-binding, generated PDF summaries are demo-only, no access is provisioned, and setup scripts are never executed or downloaded.
+Demo IT tickets remain in SQLite and are not sent externally. Acknowledgments are non-binding, generated PDF summaries are demo-only, no access is provisioned, and the backend never executes setup scripts. The deliberate admin-only frontend handoff described below packages a reviewed preview for execution outside Boardly.
+
+## Organization And Manager Data
+
+`VerifiedEmployeeProfile` supports optional `manager_name`, `manager_work_email`, and `manager_title` fields while preserving legacy `manager_id` payloads. When manager details are supplied, name and email are required, manager email is normalized, and the normalized email deterministically becomes `manager_id` unless an explicit existing ID is supplied. These fields serialize inside the validated plan JSON; no separate manager table is used.
+
+Organization department labels are stored directly in each verified employee profile and persisted plan. They do not alter or bypass deterministic role and department validation.
+
+## Setup Handoff Boundary
+
+The frontend's admin-only setup handoff uses the exact response from the existing Windows PowerShell preview endpoint. Boardly does not execute the package or add commands. Windows PowerShell remains the only supported executable setup format, and Linux shell export is not implemented.

@@ -217,6 +217,10 @@ function isPlannedOnboardingResult(
     isRecord(plan.employee) &&
     typeof plan.employee.employee_id === "string" &&
     typeof plan.employee.work_email === "string" &&
+    typeof plan.employee.manager_id === "string" &&
+    isOptionalString(plan.employee.manager_name) &&
+    isOptionalString(plan.employee.manager_work_email) &&
+    isOptionalString(plan.employee.manager_title) &&
     Array.isArray(plan.access_recommendations) &&
     isStringArray(plan.software_ids) &&
     isStringArray(plan.document_ids) &&
@@ -297,6 +301,10 @@ function isSetupScriptPreview(value: unknown): value is SetupScriptPreview {
 
 function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((item) => typeof item === "string");
+}
+
+function isOptionalString(value: unknown): value is string | null | undefined {
+  return value === undefined || value === null || typeof value === "string";
 }
 
 function isOperatingSystem(value: unknown): value is OperatingSystem {

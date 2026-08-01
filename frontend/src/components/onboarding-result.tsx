@@ -62,6 +62,9 @@ export function OnboardingResult({ result }: OnboardingResultProps) {
             value={formatToken(plan.employee.operating_system)}
           />
           <Detail label="Location" value={plan.employee.location} />
+          <Detail label="Manager" value={plan.employee.manager_name ?? plan.employee.manager_id} />
+          {plan.employee.manager_work_email ? <Detail label="Manager email" value={plan.employee.manager_work_email} /> : null}
+          {plan.employee.manager_title ? <Detail label="Manager title" value={plan.employee.manager_title} /> : null}
           <Detail label="Manager ID" value={plan.employee.manager_id} />
         </dl>
       </Panel>

@@ -44,6 +44,47 @@ def test_plan_insert_and_retrieval(tmp_path: Path) -> None:
     assert database.get_plan("persist-001") == result
 
 
+def test_manager_details_serialize_and_persist(tmp_path: Path) -> None:
+    database = make_database(tmp_path)
+    result = make_result("persist-manager", "manager-details@example.com")
+    employee = result.plan.employee.model_copy(
+        update={
+            "manager_id": "jane.smith@example.com",
+            "manager_name": "Jane Smith",
+            "manager_work_email": "jane.smith@example.com",
+            "manager_title": "Engineering Manager",
+        }
+    )
+    result = result.model_copy(
+        update={"plan": result.plan.model_copy(update={"employee": employee})}
+    )
+
+    database.save_plan(result)
+
+    persisted = database.get_plan("persist-manager")
+    assert persisted is not None
+    assert persisted.plan.employee.manager_name == "Jane Smith"
+    assert persisted.plan.employee.manager_work_email == "jane.smith@example.com"
+    assert persisted.plan.employee.manager_title == "Engineering Manager"
+
+
+def test_custom_department_is_preserved_in_plan_json(tmp_path: Path) -> None:
+    database = make_database(tmp_path)
+    result = make_result("persist-department", "department@example.com")
+    employee = result.plan.employee.model_copy(
+        update={"department": "Developer Experience"}
+    )
+    result = result.model_copy(
+        update={"plan": result.plan.model_copy(update={"employee": employee})}
+    )
+
+    database.save_plan(result)
+
+    persisted = database.get_plan("persist-department")
+    assert persisted is not None
+    assert persisted.plan.employee.department == "Developer Experience"
+
+
 def test_plan_replacement_by_employee_id(tmp_path: Path) -> None:
     database = make_database(tmp_path)
     database.save_plan(make_result("persist-001", "first@example.com"))
