@@ -1,32 +1,62 @@
 import Image from "next/image";
 
 type BoardlyLogoProps = {
-  size?: "sm" | "md" | "lg";
+  variant?: "compact" | "header" | "landing";
+  tone?: "light" | "dark";
   showText?: boolean;
   className?: string;
 };
 
-const logoSizes = {
-  sm: "w-28",
-  md: "w-36",
-  lg: "w-44",
+const logoVariants = {
+  compact: {
+    frame: "h-8 w-8",
+    text: "text-xl",
+    gap: "gap-2",
+  },
+  header: {
+    frame: "h-10 w-10",
+    text: "text-2xl",
+    gap: "gap-2.5",
+  },
+  landing: {
+    frame: "h-14 w-14",
+    text: "text-4xl",
+    gap: "gap-3",
+  },
 };
 
 export function BoardlyLogo({
-  size = "md",
+  variant = "header",
+  tone = "light",
   showText = true,
   className = "",
 }: BoardlyLogoProps) {
+  const styles = logoVariants[variant];
   return (
-    <span className={`inline-flex shrink-0 ${className}`}>
-      <Image
-        src="/boardly-logo.png"
-        alt={showText ? "Boardly" : "Boardly logo"}
-        width={1536}
-        height={1024}
-        priority
-        className={`${logoSizes[size]} h-auto select-none object-contain`}
-      />
+    <span
+      className={`inline-flex shrink-0 items-center ${styles.gap} ${className}`}
+    >
+      <span
+        className={`relative shrink-0 overflow-hidden rounded-lg bg-white shadow-sm ${styles.frame}`}
+      >
+        <Image
+          src="/boardly-logo.png"
+          alt={showText ? "" : "Boardly"}
+          width={1536}
+          height={1024}
+          priority
+          className="pointer-events-none absolute left-[-104%] top-[-130%] h-[380%] w-auto max-w-none select-none object-contain"
+        />
+      </span>
+      {showText ? (
+        <span
+          className={`${styles.text} font-extrabold leading-none ${
+            tone === "dark" ? "text-white" : "text-[#3B18A8]"
+          }`}
+        >
+          Boardly
+        </span>
+      ) : null}
     </span>
   );
 }

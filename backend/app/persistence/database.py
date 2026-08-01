@@ -218,9 +218,9 @@ def validate_demo_state(
         "document review state",
     )
     _validate_keys(
-        state.document_receipt_state,
+        state.demo_summary_received,
         document_ids,
-        "document receipt state",
+        "demo summary receipt state",
     )
     _validate_keys(
         state.demo_acknowledgment_signer_names,

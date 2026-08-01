@@ -1,78 +1,172 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import type { DemoItTicket } from "@/components/onboarding-session-provider";
-import type { ChecklistItem, PlannedOnboardingResult } from "@/lib/types";
-
-type GuideQuestion =
-  | "next"
-  | "access"
-  | "documents"
-  | "setup"
-  | "software"
-  | "unsigned"
-  | "not_received"
-  | "tickets"
-  | "software_reason"
-  | "policy_effect"
-  | "blocking"
-  | "inputs"
-  | "hr_review";
-
-type GuideAnswer = {
-  heading: string;
-  paragraphs: string[];
-  rows: Array<{ label: string; value: string }>;
-};
+import Link from "next/link";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+  type KeyboardEvent,
+} from "react";
+import { askBoardlyBuddy } from "@/lib/api";
+import type {
+  BuddyAction,
+  BuddyResponse,
+  BuddySurface,
+  PlannedOnboardingResult,
+} from "@/lib/types";
 
 type NewcomerGuideDrawerProps = {
   result: PlannedOnboardingResult;
-  nextTask: ChecklistItem | null;
+  currentSurface: BuddySurface;
+  beforeQuestion: () => Promise<void>;
+  completedTaskCount: number;
+  totalTaskCount: number;
   blockedAccessCount: number;
   approvalAccessCount: number;
-  documentReviewOverrides: Record<string, boolean>;
-  documentReceiptState: Record<string, boolean>;
-  documentSignatures: Record<
-    string,
-    { signed: boolean; signerName: string }
-  >;
-  softwareConfirmations: Record<string, boolean>;
-  demoItTickets: Record<string, DemoItTicket>;
 };
 
-const questions: Array<{ id: GuideQuestion; label: string }> = [
-  { id: "next", label: "What should I do next?" },
-  { id: "access", label: "Why is my access waiting?" },
-  { id: "documents", label: "Which documents should I review?" },
-  { id: "setup", label: "What does the setup preview do?" },
-  { id: "software", label: "Which software is still waiting?" },
-  { id: "unsigned", label: "Which documents are unsigned in the demo?" },
-  { id: "not_received", label: "Which documents are not received?" },
-  { id: "tickets", label: "Do I have any local demo tickets?" },
-  { id: "software_reason", label: "Why was this software recommended?" },
-  { id: "policy_effect", label: "What policy affected my access?" },
-  { id: "blocking", label: "What is currently blocking completion?" },
-  { id: "inputs", label: "Which input shaped my plan?" },
-  { id: "hr_review", label: "What should HR or IT review next?" },
-];
+type ConversationEntry =
+  | { id: number; role: "user"; message: string }
+  | { id: number; role: "buddy"; response: BuddyResponse }
+  | { id: number; role: "error"; message: string };
 
-export function NewcomerGuideDrawer(props: NewcomerGuideDrawerProps) {
+const suggestionsBySurface: Record<BuddySurface, [string, string, string]> = {
+  overview: [
+    "I have 30 minutes. What should I do?",
+    "What can I finish while access is pending?",
+    "What should I prepare before meeting my team?",
+  ],
+  tasks: [
+    "What should I complete next?",
+    "I have 30 minutes. What should I do?",
+    "Which tasks are blocked?",
+  ],
+  access: [
+    "What can I do while access is pending?",
+    "Why does this need human approval?",
+    "Which access item matters first?",
+  ],
+  resources: [
+    "Which document should I review next?",
+    "What is still incomplete?",
+    "Which resources relate to my remaining tasks?",
+  ],
+  setup: [
+    "What should I review before setup?",
+    "Which software is still waiting?",
+    "What can I prepare before an operator helps?",
+  ],
+};
+
+export function NewcomerGuideDrawer({
+  result,
+  currentSurface,
+  beforeQuestion,
+  completedTaskCount,
+  totalTaskCount,
+  blockedAccessCount,
+  approvalAccessCount,
+}: NewcomerGuideDrawerProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [selectedQuestion, setSelectedQuestion] =
-    useState<GuideQuestion>("next");
+  const [question, setQuestion] = useState("");
+  const [entries, setEntries] = useState<ConversationEntry[]>([]);
+  const [isPending, setIsPending] = useState(false);
   const openButtonRef = useRef<HTMLButtonElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const drawerRef = useRef<HTMLElement>(null);
+  const messageRegionRef = useRef<HTMLDivElement>(null);
   const hasOpenedRef = useRef(false);
-  const answer = getGuideAnswer(selectedQuestion, props);
+  const entryIdRef = useRef(0);
+  const employee = result.plan.employee;
+  const firstName = employee.full_name.trim().split(/\s+/)[0] || "there";
+  const remainingTasks = Math.max(totalTaskCount - completedTaskCount, 0);
+  const suggestions = suggestionsBySurface[currentSurface];
 
   useEffect(() => {
     if (isOpen) {
       hasOpenedRef.current = true;
+      const previousOverflow = document.documentElement.style.overflow;
+      document.documentElement.style.overflow = "hidden";
       closeButtonRef.current?.focus();
-    } else if (hasOpenedRef.current) {
+      return () => {
+        document.documentElement.style.overflow = previousOverflow;
+      };
+    }
+    if (hasOpenedRef.current) {
       openButtonRef.current?.focus();
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const region = messageRegionRef.current;
+    if (region) {
+      region.scrollTop = region.scrollHeight;
+    }
+  }, [entries, isOpen, isPending]);
+
+  async function submitQuestion(value: string) {
+    const normalized = value.trim();
+    if (!normalized || normalized.length > 800 || isPending) return;
+
+    setQuestion("");
+    setEntries((current) => [
+      ...current,
+      { id: ++entryIdRef.current, role: "user", message: normalized },
+    ]);
+    setIsPending(true);
+    try {
+      await beforeQuestion();
+      const response = await askBoardlyBuddy(
+        employee.employee_id,
+        normalized,
+        currentSurface,
+      );
+      setEntries((current) => [
+        ...current,
+        { id: ++entryIdRef.current, role: "buddy", response },
+      ]);
+    } catch {
+      setEntries((current) => [
+        ...current,
+        {
+          id: ++entryIdRef.current,
+          role: "error",
+          message:
+            "JedAI could not reach the local guidance service. Try again after the local backend is available.",
+        },
+      ]);
+    } finally {
+      setIsPending(false);
+    }
+  }
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    void submitQuestion(question);
+  }
+
+  function handleDrawerKeyDown(event: KeyboardEvent<HTMLElement>) {
+    if (event.key === "Escape") {
+      setIsOpen(false);
+      return;
+    }
+    if (event.key !== "Tab") return;
+    const focusable = drawerRef.current?.querySelectorAll<HTMLElement>(
+      'button:not([disabled]), a[href], input:not([disabled])',
+    );
+    if (!focusable?.length) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
 
   return (
     <>
@@ -85,113 +179,154 @@ export function NewcomerGuideDrawer(props: NewcomerGuideDrawerProps) {
         className="fixed bottom-5 right-5 z-30 inline-flex items-center gap-2 rounded-xl bg-[#6E36E4] px-4 py-3 text-sm font-bold text-white shadow-lg transition hover:bg-[#5B21B6] focus:outline-none focus:ring-2 focus:ring-[#6E36E4]/40 focus:ring-offset-2 sm:bottom-7 sm:right-7"
       >
         <GuideIcon />
-        Onboarding guide
+        JedAI
       </button>
 
       {isOpen ? (
         <div className="fixed inset-0 z-50">
           <button
             type="button"
-            aria-label="Close onboarding guide"
+            aria-label="Close JedAI"
             onClick={() => setIsOpen(false)}
-            className="absolute inset-0 bg-gray-950/35 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white"
+            className="absolute inset-0 bg-gray-950/40 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white"
           />
           <aside
+            ref={drawerRef}
             id="newcomer-guide-drawer"
             role="dialog"
             aria-modal="true"
             aria-labelledby="newcomer-guide-title"
-            onKeyDown={(event) => {
-              if (event.key === "Escape") {
-                setIsOpen(false);
-              }
-            }}
-            className="absolute inset-x-0 bottom-0 max-h-[90vh] overflow-y-auto rounded-t-2xl bg-white p-5 shadow-2xl sm:inset-y-0 sm:left-auto sm:w-full sm:max-w-md sm:rounded-none sm:p-6"
+            onKeyDown={handleDrawerKeyDown}
+            className="absolute inset-x-0 bottom-0 flex h-[min(94dvh,52rem)] flex-col overflow-hidden rounded-t-2xl bg-white shadow-2xl sm:inset-y-0 sm:left-auto sm:h-full sm:w-full sm:max-w-lg sm:rounded-none"
           >
-            <div className="flex items-start justify-between gap-4 border-b border-gray-100 pb-5">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#6E36E4]">
-                  Preset guidance
+            <header className="relative z-10 flex shrink-0 items-start justify-between gap-4 border-b border-[var(--boardly-border)] bg-[var(--boardly-ink)] px-5 py-4 text-white sm:px-6 sm:py-5">
+              <div className="min-w-0">
+                <p className="text-xs font-bold uppercase tracking-[0.14em] text-violet-300">
+                  Local and private
                 </p>
                 <h2
                   id="newcomer-guide-title"
-                  className="mt-2 text-xl font-bold text-gray-950"
+                  className="mt-1 text-xl font-bold"
                 >
-                  Onboarding guide
+                  JedAI
                 </h2>
-                <p className="mt-2 text-sm leading-6 text-gray-600">
-                  Answers use your verified plan and locally persisted progress.
+                <p className="mt-1 text-sm leading-5 text-slate-300">
+                  Your local onboarding copilot, grounded in your current Boardly plan.
                 </p>
               </div>
               <button
                 ref={closeButtonRef}
                 type="button"
-                aria-label="Close onboarding guide"
+                aria-label="Close JedAI"
                 onClick={() => setIsOpen(false)}
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-gray-500 transition hover:bg-gray-100 hover:text-gray-950 focus:outline-none focus:ring-2 focus:ring-[#6E36E4]/40"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-slate-300 transition hover:bg-white/10 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/60"
               >
                 <CloseIcon />
               </button>
-            </div>
+            </header>
 
-            <div className="mt-5 space-y-2" aria-label="Guide questions">
-              {questions.map((question) => {
-                const selected = question.id === selectedQuestion;
+            <div
+              ref={messageRegionRef}
+              className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain bg-[var(--boardly-app)] px-4 py-5 sm:px-6"
+              aria-live="polite"
+              aria-label="JedAI conversation"
+            >
+              <article className="max-w-[92%] rounded-xl border border-violet-100 bg-white px-4 py-3 shadow-sm">
+                <p className="text-sm leading-6 text-[var(--boardly-text)]">
+                  Hi {firstName}. You have {remainingTasks} task
+                  {remainingTasks === 1 ? "" : "s"} remaining, and {approvalAccessCount}{" "}
+                  access item{approvalAccessCount === 1 ? " is" : "s are"} waiting
+                  for human approval. Ask JedAI what to focus on next.
+                </p>
+                {blockedAccessCount > 0 ? (
+                  <p className="mt-2 text-xs font-semibold text-red-700">
+                    {blockedAccessCount} additional access item
+                    {blockedAccessCount === 1 ? " is" : "s are"} blocked by policy.
+                  </p>
+                ) : null}
+                <p className="mt-2 text-xs text-[var(--boardly-muted)]">
+                  Direct summary from your persisted Boardly state
+                </p>
+              </article>
+
+              {entries.map((entry) => {
+                if (entry.role === "user") {
+                  return (
+                    <article
+                      key={entry.id}
+                      className="ml-auto max-w-[88%] rounded-xl bg-[var(--boardly-ink)] px-4 py-3 text-sm leading-6 text-white"
+                    >
+                      {entry.message}
+                    </article>
+                  );
+                }
+                if (entry.role === "error") {
+                  return (
+                    <p
+                      key={entry.id}
+                      role="alert"
+                      className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm leading-6 text-red-800"
+                    >
+                      {entry.message}
+                    </p>
+                  );
+                }
                 return (
-                  <button
-                    key={question.id}
-                    type="button"
-                    aria-pressed={selected}
-                    onClick={() => setSelectedQuestion(question.id)}
-                    className={`w-full rounded-xl border px-4 py-3 text-left text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-[#6E36E4]/40 ${
-                      selected
-                        ? "border-purple-300 bg-purple-50 text-[#5B21B6]"
-                        : "border-gray-200 text-gray-700 hover:border-purple-200 hover:bg-purple-50/50"
-                    }`}
-                  >
-                    {question.label}
-                  </button>
+                  <BuddyMessage
+                    key={entry.id}
+                    employeeId={employee.employee_id}
+                    response={entry.response}
+                  />
                 );
               })}
+
+              {isPending ? (
+                <div
+                  role="status"
+                  className="inline-flex items-center gap-2 rounded-xl border border-violet-100 bg-white px-4 py-3 text-sm font-semibold text-[var(--boardly-muted)] shadow-sm"
+                >
+                  <span className="h-2 w-2 animate-pulse rounded-full bg-[var(--boardly-accent)]" />
+                  JedAI is reviewing your current onboarding state...
+                </div>
+              ) : null}
             </div>
 
-            <section
-              aria-live="polite"
-              className="mt-5 rounded-xl border border-purple-100 bg-[#F8F5FF] p-5"
-            >
-              <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#6E36E4]">
-                Guide answer
-              </p>
-              <h3 className="mt-2 text-base font-bold text-gray-950">
-                {answer.heading}
-              </h3>
-              <div className="mt-3 space-y-2">
-                {answer.paragraphs.map((paragraph) => (
-                  <p key={paragraph} className="text-sm leading-6 text-gray-700">
-                    {paragraph}
-                  </p>
+            <div className="shrink-0 border-t border-[var(--boardly-border)] bg-white px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 sm:px-6">
+              <div className="flex gap-2 overflow-x-auto pb-3" aria-label="Suggested questions">
+                {suggestions.map((suggestion) => (
+                  <button
+                    key={suggestion}
+                    type="button"
+                    disabled={isPending}
+                    onClick={() => void submitQuestion(suggestion)}
+                    className="whitespace-nowrap rounded-full border border-violet-200 bg-violet-50 px-3 py-1.5 text-xs font-semibold text-[#5B21B6] transition hover:border-violet-300 hover:bg-violet-100 focus:outline-none focus:ring-2 focus:ring-[var(--boardly-focus)] disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {suggestion}
+                  </button>
                 ))}
               </div>
-              {answer.rows.length > 0 ? (
-                <dl className="mt-4 space-y-2">
-                  {answer.rows.map((row) => (
-                    <div
-                      key={`${row.label}:${row.value}`}
-                      className="flex items-start justify-between gap-4 rounded-lg border border-purple-100 bg-white px-3 py-2 text-sm"
-                    >
-                      <dt className="font-semibold text-gray-600">{row.label}</dt>
-                      <dd className="text-right font-bold text-gray-950">
-                        {row.value}
-                      </dd>
-                    </div>
-                  ))}
-                </dl>
-              ) : null}
-            </section>
-
-            <p className="mt-5 text-xs leading-5 text-gray-500">
-              Deterministic demo guidance — no AI or network request is used.
-            </p>
+              <form onSubmit={handleSubmit} className="flex items-end gap-2">
+                <label className="min-w-0 flex-1">
+                  <span className="sr-only">Ask JedAI</span>
+                  <input
+                    value={question}
+                    onChange={(event) => setQuestion(event.target.value)}
+                    maxLength={800}
+                    placeholder="Ask JedAI what to do next..."
+                    disabled={isPending}
+                    className="min-h-11 w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm text-gray-950 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--boardly-focus)] disabled:bg-gray-100"
+                  />
+                </label>
+                <button
+                  type="submit"
+                  aria-label="Send question"
+                  disabled={isPending || !question.trim()}
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[var(--boardly-accent)] text-white transition hover:bg-[#5B21B6] focus:outline-none focus:ring-2 focus:ring-[var(--boardly-focus)] focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-gray-400"
+                >
+                  <SendIcon />
+                </button>
+              </form>
+            </div>
           </aside>
         </div>
       ) : null}
@@ -199,262 +334,114 @@ export function NewcomerGuideDrawer(props: NewcomerGuideDrawerProps) {
   );
 }
 
-function getGuideAnswer(
-  question: GuideQuestion,
-  {
-    result,
-    nextTask,
-    blockedAccessCount,
-    approvalAccessCount,
-    documentReviewOverrides,
-    documentReceiptState,
-    documentSignatures,
-    softwareConfirmations,
-    demoItTickets,
-  }: NewcomerGuideDrawerProps,
-): GuideAnswer {
-  if (question === "next") {
-    return {
-      heading: "What should I do next?",
-      paragraphs: [
-        nextTask
-          ? `Your next task is ${nextTask.title}. It is the first incomplete ${nextTask.phase === "day_one" ? "day-one" : "week-one"} item.`
-          : "All checklist tasks are complete for this session.",
-      ],
-      rows: nextTask
-        ? [{ label: "Phase", value: formatToken(nextTask.phase) }]
-        : [{ label: "Session checklist", value: "Complete" }],
-    };
-  }
+function BuddyMessage({
+  employeeId,
+  response,
+}: {
+  employeeId: string;
+  response: BuddyResponse;
+}) {
+  const isFallback = response.source === "basic_fallback";
+  return (
+    <article className="max-w-[94%] rounded-xl border border-[var(--boardly-border)] bg-white px-4 py-4 shadow-sm">
+      <p
+        className={`text-xs font-bold uppercase tracking-[0.12em] ${
+          isFallback ? "text-amber-700" : "text-emerald-700"
+        }`}
+      >
+        {isFallback
+          ? "Basic fallback guidance"
+          : "Generated locally by JedAI from your current Boardly plan"}
+      </p>
+      <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-[var(--boardly-text)]">
+        {response.message}
+      </p>
+      <p className="mt-2 text-xs leading-5 text-[var(--boardly-muted)]">
+        {response.status_summary}
+      </p>
 
-  if (question === "access") {
-    return {
-      heading: "Why is my access waiting?",
-      paragraphs: [
-        "Access is not active until required human review is complete. Boardly does not provision access from this interface.",
-      ],
-      rows: [
-        { label: "Human approval required", value: String(approvalAccessCount) },
-        { label: "Blocked by policy", value: String(blockedAccessCount) },
-      ],
-    };
-  }
-
-  if (question === "software_reason") {
-    return {
-      heading: "Why was this software recommended?",
-      paragraphs: [
-        `The Boardly planning engine selected ${result.plan.software_ids.length} compatible packages from the deterministic ${result.plan.employee.role_id} template for ${formatOperatingSystem(result.plan.employee.operating_system)}.`,
-      ],
-      rows: result.plan.software_ids.slice(0, 5).map((id) => ({
-        label: formatResourceLabel(id),
-        value: id,
-      })),
-    };
-  }
-
-  if (question === "policy_effect") {
-    const blocked = result.policy_decisions.filter(
-      (decision) => decision.decision === "blocked",
-    );
-    return {
-      heading: "What policy affected my access?",
-      paragraphs: [
-        "Every access recommendation is evaluated against deterministic role policy. Human approval remains required for allowed recommendations, while blocked decisions cannot move forward.",
-      ],
-      rows: [
-        { label: "Human approval required", value: String(approvalAccessCount) },
-        { label: "Policy blocks", value: String(blocked.length) },
-        ...blocked.slice(0, 3).map((decision) => ({
-          label: formatResourceLabel(decision.resource_id),
-          value: "Blocked",
-        })),
-      ],
-    };
-  }
-
-  if (question === "blocking") {
-    const remainingSoftware = result.plan.software_ids.filter(
-      (id) => softwareConfirmations[id] !== true,
-    ).length;
-    const remainingDocuments = result.plan.document_ids.filter(
-      (id) => documentReviewOverrides[id] !== true,
-    ).length;
-    return {
-      heading: "What is currently blocking completion?",
-      paragraphs: [
-        blockedAccessCount > 0
-          ? "Policy-blocked access is the highest-priority constraint."
-          : nextTask
-            ? `${nextTask.title} is the first incomplete checklist action.`
-            : "No checklist task is currently blocking completion.",
-      ],
-      rows: [
-        { label: "Policy blocks", value: String(blockedAccessCount) },
-        { label: "Documents to review", value: String(remainingDocuments) },
-        { label: "Software to confirm", value: String(remainingSoftware) },
-      ],
-    };
-  }
-
-  if (question === "inputs") {
-    const employee = result.plan.employee;
-    return {
-      heading: "Which input shaped my plan?",
-      paragraphs: [
-        "These verified attributes select deterministic role, software, document and policy rules. Notes do not control authorization.",
-      ],
-      rows: [
-        { label: "Role", value: employee.role_id },
-        { label: "Department", value: employee.department },
-        { label: "Seniority", value: formatToken(employee.seniority) },
-        { label: "Operating system", value: formatOperatingSystem(employee.operating_system) },
-        { label: "Team", value: employee.team_id },
-      ],
-    };
-  }
-
-  if (question === "hr_review") {
-    const priority =
-      blockedAccessCount > 0
-        ? "Review policy-blocked access"
-        : approvalAccessCount > 0
-          ? "Complete human access review"
-          : result.plan.document_ids.some(
-                (id) => documentReviewOverrides[id] !== true,
-              )
-            ? "Confirm document readiness"
-            : "Review setup readiness";
-    return {
-      heading: "What should HR or IT review next?",
-      paragraphs: [
-        `${priority} is the highest-priority operator action derived from the current plan and progress.`,
-      ],
-      rows: [
-        { label: "Policy blocks", value: String(blockedAccessCount) },
-        { label: "Awaiting approval", value: String(approvalAccessCount) },
-      ],
-    };
-  }
-
-  if (question === "documents") {
-    const remaining = result.plan.document_ids.filter(
-      (id) => documentReviewOverrides[id] !== true,
-    );
-    return resourceAnswer(
-      "Which documents should I review?",
-      remaining,
-      "All documents are marked reviewed for this session.",
-      "Remaining to review",
-    );
-  }
-
-  if (question === "software") {
-    const remaining = result.plan.software_ids.filter(
-      (id) => softwareConfirmations[id] !== true,
-    );
-    return resourceAnswer(
-      "Which software is still waiting?",
-      remaining,
-      "All planned software is self-reported as installed and saved locally.",
-      "Waiting for manual confirmation",
-    );
-  }
-
-  if (question === "unsigned") {
-    const remaining = result.plan.document_ids.filter(
-      (id) => documentSignatures[id]?.signed !== true,
-    );
-    return resourceAnswer(
-      "Which documents are unsigned in the demo?",
-      remaining,
-      "All documents have a non-binding demo acknowledgment saved locally.",
-      "Without demo acknowledgment",
-    );
-  }
-
-  if (question === "not_received") {
-    const remaining = result.plan.document_ids.filter(
-      (id) => documentReceiptState[id] !== true,
-    );
-    return resourceAnswer(
-      "Which documents are not received?",
-      remaining,
-      "All documents are marked received for this session.",
-      "Not marked received",
-    );
-  }
-
-  if (question === "tickets") {
-    const tickets = Object.values(demoItTickets).filter(
-      (ticket) => ticket.submitted,
-    );
-    const categoryCount = (category: DemoItTicket["category"]) =>
-      tickets.filter((ticket) => ticket.category === category).length;
-    return {
-      heading: "Do I have any local demo tickets?",
-      paragraphs: [
-        tickets.length > 0
-          ? "These tickets are stored in the local Boardly demo database and are not sent externally."
-          : "No local demo tickets have been submitted.",
-      ],
-      rows: [
-        { label: "Total local tickets", value: String(tickets.length) },
-        { label: "Software", value: String(categoryCount("software")) },
-        { label: "Access", value: String(categoryCount("access")) },
-        { label: "Setup", value: String(categoryCount("setup")) },
-      ],
-    };
-  }
-
-  const operatingSystem = result.plan.employee.operating_system;
-  return {
-    heading: "What does the setup preview do?",
-    paragraphs: [
-      operatingSystem === "windows"
-        ? "Your Windows plan supports the setup preview."
-        : `Your ${formatOperatingSystem(operatingSystem)} plan is not supported by the preview in this MVP.`,
-      "The Windows-only preview generates reviewable PowerShell content. Human review is required, automatic execution is disabled, and Boardly does not execute or download the script.",
-    ],
-    rows: [
-      { label: "Human review", value: "Required" },
-      { label: "Automatic execution", value: "Disabled" },
-    ],
-  };
+      {response.recommended_actions.length > 0 ? (
+        <ActionList
+          title="Next actions"
+          employeeId={employeeId}
+          actions={response.recommended_actions}
+        />
+      ) : null}
+      {response.blockers.length > 0 ? (
+        <ActionList
+          title="Waiting on someone else"
+          employeeId={employeeId}
+          actions={response.blockers}
+          blocker
+        />
+      ) : null}
+      {response.missing_information ? (
+        <p className="mt-3 border-l-2 border-amber-400 pl-3 text-xs leading-5 text-amber-900">
+          Information unavailable: {response.missing_information}
+        </p>
+      ) : null}
+      {response.evidence.length > 0 ? (
+        <div className="mt-4 border-t border-gray-100 pt-3">
+          <p className="text-xs font-bold text-gray-700">
+            Based on your Boardly state
+          </p>
+          <p className="mt-1 text-xs leading-5 text-gray-500">
+            {response.evidence.join(" · ")}
+          </p>
+        </div>
+      ) : null}
+    </article>
+  );
 }
 
-function resourceAnswer(
-  heading: string,
-  remaining: string[],
-  completeMessage: string,
-  countLabel: string,
-): GuideAnswer {
-  return {
-    heading,
-    paragraphs: [
-      remaining.length > 0
-        ? `Start with: ${remaining.slice(0, 3).map(formatResourceLabel).join(", ")}.`
-        : completeMessage,
-    ],
-    rows: [{ label: countLabel, value: String(remaining.length) }],
-  };
+function ActionList({
+  title,
+  employeeId,
+  actions,
+  blocker = false,
+}: {
+  title: string;
+  employeeId: string;
+  actions: BuddyAction[];
+  blocker?: boolean;
+}) {
+  return (
+    <section className="mt-4">
+      <h3 className="text-xs font-bold uppercase tracking-[0.12em] text-gray-500">
+        {title}
+      </h3>
+      <ol className="mt-2 space-y-2">
+        {actions.map((action, index) => (
+          <li key={action.item_id}>
+            <Link
+              href={buddyActionHref(employeeId, action.surface)}
+              className={`flex items-center justify-between gap-3 rounded-lg border px-3 py-2 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-[var(--boardly-focus)] ${
+                blocker
+                  ? "border-amber-200 bg-amber-50 text-amber-900 hover:bg-amber-100"
+                  : "border-violet-100 bg-violet-50 text-[#5B21B6] hover:bg-violet-100"
+              }`}
+            >
+              <span className="min-w-0">
+                {blocker ? "" : `${index + 1}. `}
+                {action.label}
+              </span>
+              <span className="shrink-0 text-xs font-medium">
+                {formatStatus(action.status)}
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
 }
 
-function formatResourceLabel(value: string) {
-  return value
-    .split(/[_-]+/)
-    .filter(Boolean)
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-    .join(" ");
+function buddyActionHref(employeeId: string, surface: BuddySurface) {
+  return `/onboard/${encodeURIComponent(employeeId)}/${surface}`;
 }
 
-function formatToken(value: string) {
-  const formatted = value.replace(/_/g, " ");
-  return formatted.charAt(0).toUpperCase() + formatted.slice(1);
-}
-
-function formatOperatingSystem(value: string) {
-  return value === "macos" ? "macOS" : formatToken(value);
+function formatStatus(value: string) {
+  return value.replace(/_/g, " ");
 }
 
 function GuideIcon() {
@@ -487,6 +474,22 @@ function CloseIcon() {
       strokeWidth="2"
     >
       <path d="m6 6 12 12M18 6 6 18" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function SendIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-5 w-5"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+    >
+      <path d="m4 4 16 8-16 8 3-8-3-8Z" strokeLinejoin="round" />
+      <path d="M7 12h13" />
     </svg>
   );
 }

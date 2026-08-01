@@ -27,7 +27,7 @@ export function OnboardingResult({ result }: OnboardingResultProps) {
   return (
     <section
       aria-labelledby="onboarding-result-title"
-      className="space-y-5 rounded-2xl border border-gray-200/80 bg-white p-6 shadow-soft sm:p-8"
+      className="boardly-surface space-y-5 p-6 sm:p-8"
     >
       <div>
         <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#6E36E4]">

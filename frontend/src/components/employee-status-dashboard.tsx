@@ -72,7 +72,7 @@ export function EmployeeStatusDashboard({ employeeId }: { employeeId: string }) 
         title={employee.full_name}
         description="Persisted onboarding status derived from the latest verified plan and local Boardly demo progress."
       />
-      <section className="rounded-2xl border border-purple-100 bg-white p-6 shadow-soft">
+      <section className="boardly-surface border-purple-100 p-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <dl className="grid flex-1 gap-x-6 gap-y-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
             <Detail label="Employee ID" value={employee.employee_id} />
@@ -110,17 +110,20 @@ export function EmployeeStatusDashboard({ employeeId }: { employeeId: string }) 
           <Metric label="Day one" value={`${metrics.dayOneCompleted} / ${metrics.dayOneTotal}`} />
           <Metric label="Week one" value={`${metrics.weekOneCompleted} / ${metrics.weekOneTotal}`} />
           <Metric label="Documents reviewed" value={`${metrics.documentsReviewed} / ${metrics.documentsTotal}`} />
-          <Metric label="Documents received" value={`${metrics.documentsReceived} / ${metrics.documentsTotal}`} />
+          <Metric
+            label="Demo summaries received"
+            value={`${metrics.demoSummariesReceived} / ${metrics.documentsTotal}`}
+          />
           <Metric label="Demo acknowledgments" value={`${metrics.acknowledgments} / ${metrics.documentsTotal}`} />
           <Metric label="Software confirmed" value={`${metrics.softwareConfirmed} / ${metrics.softwareTotal}`} />
-          <Metric label="Demo IT tickets" value={String(metrics.demoTickets)} />
+          <Metric label="Demo support requests" value={String(metrics.demoTickets)} />
           <Metric label="Waiting for approval" value={String(metrics.approvalRequired)} />
           <Metric label="Blocked access" value={String(metrics.blockedAccess)} />
           <Metric label="Setup preview" value={metrics.setupPreviewGenerated ? "Prepared" : "Not prepared"} />
         </div>
       </section>
 
-      <section className="border border-[var(--boardly-border)] bg-white p-5 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
+      <section className="boardly-surface p-5">
         <div className="flex items-center justify-between gap-4"><div><h3 className="text-lg font-bold text-[var(--boardly-text)]">Access risk distribution</h3><p className="mt-1 text-sm text-[var(--boardly-muted)]">Real recommendations grouped by current policy outcome.</p></div><span className="text-sm font-bold text-[var(--boardly-text)]">{result.plan.access_recommendations.length} total</span></div>
         <AccessDistribution
           recommended={Math.max(result.plan.access_recommendations.length - metrics.approvalRequired - metrics.blockedAccess, 0)}
@@ -129,7 +132,7 @@ export function EmployeeStatusDashboard({ employeeId }: { employeeId: string }) 
         />
       </section>
 
-      <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-soft">
+      <section className="boardly-surface p-6">
         <h3 className="text-lg font-bold text-gray-950">Onboarding stages</h3>
         <ol className="mt-5 grid gap-3 lg:grid-cols-6">
           {stages.map((stage, index) => (
@@ -151,7 +154,7 @@ export function EmployeeStatusDashboard({ employeeId }: { employeeId: string }) 
         </ol>
       </section>
 
-      <section className="rounded-2xl border border-amber-100 bg-white p-6 shadow-soft">
+      <section className="boardly-surface border-amber-100 p-6">
         <h3 className="text-lg font-bold text-gray-950">Items needing attention</h3>
         <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           <Attention label="Blocked resources" values={blockedResources} />
@@ -159,13 +162,13 @@ export function EmployeeStatusDashboard({ employeeId }: { employeeId: string }) 
           <Attention label="Unreviewed documents" values={unreviewedDocuments} />
           <Attention label="Unconfirmed software" values={unconfirmedSoftware} />
           <Attention label="Incomplete day-one tasks" values={incompleteDayOne.map((item) => item.title)} />
-          <Attention label="Prepared demo IT tickets" values={ticketEntries.map(([key]) => key)} />
+          <Attention label="Prepared demo support requests" values={ticketEntries.map(([key]) => key)} />
         </div>
       </section>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         <ReadinessCard title="Task progress" text={`${metrics.completedTasks} of ${metrics.totalTasks} persisted tasks complete.`} />
-        <ReadinessCard title="Document readiness" text={`${metrics.documentsReviewed} reviewed, ${metrics.documentsReceived} received and ${metrics.acknowledgments} demo acknowledgments.`} />
+        <ReadinessCard title="Document readiness" text={`${metrics.documentsReviewed} reviewed, ${metrics.demoSummariesReceived} demo summaries received and ${metrics.acknowledgments} demo acknowledgments.`} />
         <ReadinessCard title="Software readiness" text={`${metrics.softwareConfirmed} of ${metrics.softwareTotal} self-reported confirmations.`} />
         <ReadinessCard title="Access status" text={`${metrics.approvalRequired} waiting for approval and ${metrics.blockedAccess} blocked.`} />
         <ReadinessCard title="Setup readiness" text={metrics.setupPreviewGenerated ? "Setup preview prepared for human review." : "Setup preview has not been prepared."} />
@@ -179,7 +182,7 @@ export function EmployeeStatusDashboard({ employeeId }: { employeeId: string }) 
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <article className="rounded-2xl border border-gray-200 bg-white p-5 shadow-soft">
+    <article className="boardly-surface p-5">
       <p className="text-xs font-semibold text-gray-600">{label}</p>
       <p className="mt-3 text-2xl font-bold text-[#6E36E4]">{value}</p>
     </article>
@@ -224,7 +227,7 @@ function Attention({ label, values }: { label: string; values: string[] }) {
 
 function ReadinessCard({ title, text }: { title: string; text: string }) {
   return (
-    <article className="rounded-2xl border border-gray-200 bg-white p-5 shadow-soft">
+    <article className="boardly-surface p-5">
       <h3 className="font-bold text-gray-950">{title}</h3>
       <p className="mt-2 text-sm leading-6 text-gray-600">{text}</p>
     </article>

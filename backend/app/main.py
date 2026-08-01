@@ -3,6 +3,7 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.buddy import router as buddy_router
 from app.api.demo_auth import router as demo_auth_router
 from app.api.onboarding import router as onboarding_router
 from app.api.setup_scripts import router as setup_scripts_router
@@ -34,6 +35,7 @@ def create_app() -> FastAPI:
     fastapi_app.include_router(onboarding_router)
     fastapi_app.include_router(setup_scripts_router)
     fastapi_app.include_router(demo_auth_router)
+    fastapi_app.include_router(buddy_router)
 
     @fastapi_app.get("/")
     def read_root() -> dict[str, str]:

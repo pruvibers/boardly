@@ -210,7 +210,7 @@ export function EmployeeForm({
 
   return (
     <section id="new-onboarding" className="scroll-mt-24 space-y-6">
-      <div className="overflow-hidden rounded-2xl border border-[var(--boardly-border)] bg-[var(--boardly-surface)] shadow-[0_16px_42px_rgba(15,23,42,0.08)]">
+      <div className="boardly-surface overflow-hidden">
         <ol className="grid border-b border-[var(--boardly-border)] bg-[var(--boardly-elevated)] sm:grid-cols-5" aria-label="Onboarding form sections">
           {["Identity", "Organization", "Manager", "Device", "Review"].map(
             (label, index) => (

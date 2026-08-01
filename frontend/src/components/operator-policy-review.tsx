@@ -47,7 +47,7 @@ export function OperatorPolicyReview({ employeeId }: { employeeId: string }) {
         title="Operator policy review"
         description="Complete deterministic recommendations and raw policy decisions for the persisted employee plan."
       />
-      <section className="rounded-2xl border border-purple-100 bg-white p-5 shadow-soft sm:p-6">
+      <section className="boardly-surface border-purple-100 p-5 sm:p-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <h3 className="text-xl font-bold text-gray-950">{employee.full_name}</h3>

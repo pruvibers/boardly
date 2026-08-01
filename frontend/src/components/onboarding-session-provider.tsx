@@ -26,7 +26,10 @@ export type { DemoItTicket } from "@/lib/types";
 type TaskCompletionOverrides = Record<string, Record<string, boolean>>;
 type DocumentReviewOverrides = Record<string, Record<string, boolean>>;
 export type SoftwareConfirmations = Record<string, Record<string, boolean>>;
-export type DocumentReceiptState = Record<string, Record<string, boolean>>;
+export type DemoSummaryReceiptState = Record<
+  string,
+  Record<string, boolean>
+>;
 export type DemoDocumentSignatures = Record<
   string,
   Record<string, { signed: boolean; signerName: string }>
@@ -40,7 +43,7 @@ type OnboardingSessionContextValue = {
   taskCompletionOverrides: TaskCompletionOverrides;
   documentReviewOverrides: DocumentReviewOverrides;
   softwareConfirmations: SoftwareConfirmations;
-  documentReceiptState: DocumentReceiptState;
+  demoSummaryReceiptState: DemoSummaryReceiptState;
   demoDocumentSignatures: DemoDocumentSignatures;
   demoItTickets: DemoItTickets;
   saveStatusByEmployee: Record<string, DemoSaveStatus>;
@@ -49,6 +52,7 @@ type OnboardingSessionContextValue = {
   hydratePlans: () => Promise<void>;
   hydrateWorkspace: () => Promise<void>;
   hydrateEmployee: (employeeId: string) => Promise<boolean>;
+  flushEmployeeDemoState: (employeeId: string) => Promise<void>;
   recordPlan: (result: PlannedOnboardingResult) => void;
   setTaskCompleted: (
     employeeId: string,
@@ -65,7 +69,7 @@ type OnboardingSessionContextValue = {
     softwareId: string,
     confirmed: boolean,
   ) => void;
-  setDocumentReceived: (
+  setDemoSummaryReceived: (
     employeeId: string,
     documentId: string,
     received: boolean,
@@ -162,6 +166,15 @@ export function OnboardingSessionProvider({ children }: { children: ReactNode })
     },
     [queueDemoStateSave, storeDemoStates],
   );
+
+  const flushEmployeeDemoState = useCallback(async (employeeId: string) => {
+    while (true) {
+      const pendingSave = saveQueuesRef.current[employeeId];
+      if (!pendingSave) return;
+      await pendingSave;
+      if (saveQueuesRef.current[employeeId] === pendingSave) return;
+    }
+  }, []);
 
   const hydratePlans = useCallback(async () => {
     setIsHydrating(true);
@@ -287,14 +300,14 @@ export function OnboardingSessionProvider({ children }: { children: ReactNode })
     [results, updateEmployeeDemoState],
   );
 
-  const setDocumentReceived = useCallback(
+  const setDemoSummaryReceived = useCallback(
     (employeeId: string, documentId: string, received: boolean) => {
       const result = findEmployeeResult(results, employeeId);
       if (!result?.plan.document_ids.includes(documentId)) return;
       updateEmployeeDemoState(employeeId, (state) => ({
         ...state,
-        document_receipt_state: {
-          ...state.document_receipt_state,
+        demo_summary_received: {
+          ...state.demo_summary_received,
           [documentId]: received,
         },
       }));
@@ -311,6 +324,10 @@ export function OnboardingSessionProvider({ children }: { children: ReactNode })
       }
       updateEmployeeDemoState(employeeId, (state) => ({
         ...state,
+        document_review_state: {
+          ...state.document_review_state,
+          [documentId]: true,
+        },
         demo_acknowledgment_signer_names: {
           ...state.demo_acknowledgment_signer_names,
           [documentId]: normalizedName,
@@ -406,8 +423,8 @@ export function OnboardingSessionProvider({ children }: { children: ReactNode })
     () => mapDemoState(demoStates, (state) => state.software_confirmations),
     [demoStates],
   );
-  const documentReceipts = useMemo(
-    () => mapDemoState(demoStates, (state) => state.document_receipt_state),
+  const demoSummaryReceipts = useMemo(
+    () => mapDemoState(demoStates, (state) => state.demo_summary_received),
     [demoStates],
   );
   const documentSignatures = useMemo(
@@ -436,7 +453,7 @@ export function OnboardingSessionProvider({ children }: { children: ReactNode })
       taskCompletionOverrides,
       documentReviewOverrides,
       softwareConfirmations: softwareConfirmationState,
-      documentReceiptState: documentReceipts,
+      demoSummaryReceiptState: demoSummaryReceipts,
       demoDocumentSignatures: documentSignatures,
       demoItTickets: ticketState,
       saveStatusByEmployee,
@@ -445,11 +462,12 @@ export function OnboardingSessionProvider({ children }: { children: ReactNode })
       hydratePlans,
       hydrateWorkspace,
       hydrateEmployee,
+      flushEmployeeDemoState,
       recordPlan,
       setTaskCompleted,
       setDocumentReviewed,
       setSoftwareConfirmed,
-      setDocumentReceived,
+      setDemoSummaryReceived,
       signDemoDocument,
       clearDemoDocumentSignature,
       submitDemoItTicket,
@@ -460,10 +478,11 @@ export function OnboardingSessionProvider({ children }: { children: ReactNode })
       clearDemoDocumentSignature,
       clearDemoItTicket,
       demoStates,
-      documentReceipts,
+      demoSummaryReceipts,
       documentReviewOverrides,
       documentSignatures,
       hydrateEmployee,
+      flushEmployeeDemoState,
       hydratePlans,
       hydrateWorkspace,
       hydrationError,
@@ -471,7 +490,7 @@ export function OnboardingSessionProvider({ children }: { children: ReactNode })
       recordPlan,
       results,
       saveStatusByEmployee,
-      setDocumentReceived,
+      setDemoSummaryReceived,
       setDocumentReviewed,
       setSoftwareConfirmed,
       setTaskCompleted,
@@ -495,7 +514,7 @@ function createEmptyDemoState(): PersistedDemoState {
   return {
     task_completion_overrides: {},
     document_review_state: {},
-    document_receipt_state: {},
+    demo_summary_received: {},
     demo_acknowledgment_signer_names: {},
     software_confirmations: {},
     demo_it_tickets: {},

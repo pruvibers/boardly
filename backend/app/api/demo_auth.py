@@ -47,7 +47,7 @@ def demo_login(credentials: DemoLoginRequest) -> DemoLoginResult:
             status_code=404,
             detail=(
                 "No onboarding plan was found for this work email. Ask your "
-                "HR or IT team to prepare your verified onboarding plan."
+                "onboarding operator to prepare your verified onboarding plan."
             ),
         )
 

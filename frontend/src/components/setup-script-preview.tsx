@@ -50,7 +50,7 @@ export function SetupScriptPreviewPanel({
   }
 
   return (
-    <section className="rounded-xl border border-gray-200 p-4">
+    <section className="boardly-surface p-5 sm:p-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h3 className="text-lg font-bold text-gray-950">
@@ -120,7 +120,7 @@ function NewcomerSetupProcess() {
       </li>
       <li className="rounded-xl border border-gray-200 bg-gray-50 p-4">
         <span className="font-bold text-[#6E36E4]">2.</span> Check any manual
-        steps that require IT approval.
+        steps that require operator approval.
       </li>
       <li className="rounded-xl border border-gray-200 bg-gray-50 p-4">
         <span className="font-bold text-[#6E36E4]">3.</span> Generate a technical
@@ -190,7 +190,7 @@ function NewcomerPreviewDetails({
         </summary>
         <div className="mt-5 space-y-5 border-t border-gray-200 pt-5">
           <p className="border-l-4 border-amber-400 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-950">
-            Visible review warning: inspect every command before an authorized IT operator considers execution outside Boardly.
+            Visible review warning: inspect every command before an authorized operator considers execution outside Boardly.
           </p>
           <CommandReviewList values={preview.executable_commands} />
           <section>
@@ -265,7 +265,7 @@ function ManualStepList({
                     onClick={() => onCreateTicket(value)}
                     className="mt-3 rounded-lg border border-purple-200 px-3 py-2 text-xs font-bold text-[#6E36E4] transition hover:bg-purple-50 focus:outline-none focus:ring-2 focus:ring-[#6E36E4]/30"
                   >
-                    Create demo IT ticket
+                    Create demo support request
                   </button>
                 ) : null}
               </li>

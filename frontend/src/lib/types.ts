@@ -106,7 +106,7 @@ export type DemoItTicket = {
 export type PersistedDemoState = {
   task_completion_overrides: Record<string, boolean>;
   document_review_state: Record<string, boolean>;
-  document_receipt_state: Record<string, boolean>;
+  demo_summary_received: Record<string, boolean>;
   demo_acknowledgment_signer_names: Record<string, string>;
   software_confirmations: Record<string, boolean>;
   demo_it_tickets: Record<string, DemoItTicket>;
@@ -124,4 +124,36 @@ export type SetupScriptPreview = {
   content: string;
   requires_human_review: true;
   auto_execute: false;
+};
+
+export type BuddySurface =
+  | "overview"
+  | "tasks"
+  | "resources"
+  | "access"
+  | "setup";
+
+export type BuddyItemKind =
+  | "task"
+  | "document"
+  | "software"
+  | "access"
+  | "setup";
+
+export type BuddyAction = {
+  item_id: string;
+  label: string;
+  kind: BuddyItemKind;
+  surface: BuddySurface;
+  status: string;
+};
+
+export type BuddyResponse = {
+  source: "local_model" | "basic_fallback";
+  message: string;
+  recommended_actions: BuddyAction[];
+  blockers: BuddyAction[];
+  status_summary: string;
+  missing_information: string | null;
+  evidence: string[];
 };

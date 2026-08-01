@@ -265,13 +265,13 @@ SOFTWARE_CATALOG: tuple[SoftwarePackage, ...] = (
         ),
         install_commands={
             OperatingSystem.windows: (
-                "IT approval required before installing Company VPN Client"
+                "Operator approval required before installing Company VPN Client"
             ),
-            OperatingSystem.macos: "IT approval required before installing Company VPN Client",
-            OperatingSystem.linux: "IT approval required before installing Company VPN Client",
+            OperatingSystem.macos: "Operator approval required before installing Company VPN Client",
+            OperatingSystem.linux: "Operator approval required before installing Company VPN Client",
         },
         risk=RiskLevel.medium,
-        description="Placeholder VPN client entry gated by IT approval.",
+        description="Placeholder VPN client entry gated by operator approval.",
     ),
 )
 
