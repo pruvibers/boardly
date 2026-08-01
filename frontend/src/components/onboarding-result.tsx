@@ -4,6 +4,7 @@ import type {
   PlannedOnboardingResult,
   PolicyDecision,
 } from "@/lib/types";
+import { SetupScriptPreviewPanel } from "@/components/setup-script-preview";
 
 type OnboardingResultProps = {
   result: PlannedOnboardingResult;
@@ -90,6 +91,11 @@ export function OnboardingResult({ result }: OnboardingResultProps) {
         <ChecklistPanel title="Day-one checklist" items={dayOneChecklist} />
         <ChecklistPanel title="Week-one checklist" items={weekOneChecklist} />
       </div>
+
+      <SetupScriptPreviewPanel
+        key={`${plan.employee.employee_id}-${plan.employee.work_email}-${plan.employee.role_id}-${plan.employee.operating_system}`}
+        employee={plan.employee}
+      />
     </section>
   );
 }

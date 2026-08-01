@@ -90,3 +90,16 @@ export type PlannedOnboardingResult = {
   plan: OnboardingPlan;
   policy_decisions: PolicyDecision[];
 };
+
+export type SetupScriptPreview = {
+  employee_id: string;
+  operating_system: OperatingSystem;
+  shell: "powershell";
+  filename: string;
+  software_ids: string[];
+  executable_commands: string[];
+  manual_steps: string[];
+  content: string;
+  requires_human_review: true;
+  auto_execute: false;
+};
