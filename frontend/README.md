@@ -29,6 +29,6 @@ Create `frontend/.env.local` when local overrides are needed.
 NEXT_PUBLIC_API_URL=http://localhost:8000
 ```
 
-`NEXT_PUBLIC_API_URL` points the frontend to the Boardly backend API.
+`NEXT_PUBLIC_API_URL` points the frontend to the Boardly backend API. The backend must be running on port `8000` by default for local integration.
 
-This branch contains only the frontend foundation and does not call the backend yet.
+The employee form now calls the onboarding-plan API and renders deterministic onboarding results. Setup-script preview generation is not requested from the frontend yet.

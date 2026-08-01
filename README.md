@@ -39,6 +39,8 @@ Safe Windows setup-script previews can now be generated for deterministic onboar
 
 The Next.js frontend foundation now exists in the frontend workspace.
 
+The frontend now submits employee profiles and renders deterministic onboarding results.
+
 ## Backend Development
 
 Create and activate a Python 3.14 virtual environment:

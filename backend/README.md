@@ -55,6 +55,10 @@ curl.exe -X POST http://localhost:8000/onboarding/plans/generate `
   -d '{"employee_id":"emp-001","full_name":"Aylin Demir","work_email":"aylin.demir@example.com","role_id":"backend-junior","department":"Engineering","team_id":"backend","seniority":"junior","operating_system":"windows","location":"Istanbul","manager_id":"mgr-001","notes":null}'
 ```
 
+## CORS
+
+`BOARDLY_ALLOWED_ORIGINS` configures allowed browser origins as a comma-separated list. Empty entries are ignored, wildcard origins are not used, and credentials are not allowed. The default local frontend origin is `http://localhost:3000`.
+
 ## Safe Setup Script Preview
 
 `POST /onboarding/setup-script/preview` previews a Windows PowerShell setup script for a verified employee profile. The MVP supports Windows PowerShell only. Software selections come from the deterministic onboarding planner, commands are generated through a strict `winget` allowlist, and Company VPN installation remains a manual IT-approved step. Scripts are previewed only: Boardly never executes generated scripts, and human review is required.
