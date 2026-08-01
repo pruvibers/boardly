@@ -62,6 +62,22 @@ def _reject_blank(value: str) -> str:
     return value
 
 
+def _normalize_company_email(value: str, field_name: str) -> str:
+    value = value.strip().lower()
+    local_part, separator, domain = value.partition("@")
+    domain_labels = domain.split(".")
+    if (
+        separator != "@"
+        or not local_part
+        or not domain
+        or any(not label for label in domain_labels)
+        or len(domain_labels) < 2
+        or any(character.isspace() for character in value)
+    ):
+        raise ValueError(f"{field_name} must be a valid company-style email")
+    return value
+
+
 def _reject_duplicate_ids(values: list[str], field_name: str) -> list[str]:
     if len(values) != len(set(values)):
         raise ValueError(f"{field_name} must not contain duplicate IDs")
@@ -78,7 +94,10 @@ class VerifiedEmployeeProfile(BaseModel):
     seniority: SeniorityLevel
     operating_system: OperatingSystem
     location: str
-    manager_id: str
+    manager_id: str = ""
+    manager_name: str | None = None
+    manager_work_email: str | None = None
+    manager_title: str | None = None
     notes: str | None = Field(
         default=None,
         max_length=1000,
@@ -95,7 +114,6 @@ class VerifiedEmployeeProfile(BaseModel):
         "department",
         "team_id",
         "location",
-        "manager_id",
     )
     @classmethod
     def required_strings_must_not_be_blank(cls, value: str) -> str:
@@ -104,19 +122,44 @@ class VerifiedEmployeeProfile(BaseModel):
     @field_validator("work_email")
     @classmethod
     def work_email_must_have_basic_company_format(cls, value: str) -> str:
-        value = value.strip().lower()
-        local_part, separator, domain = value.partition("@")
-        domain_labels = domain.split(".")
-        if (
-            separator != "@"
-            or not local_part
-            or not domain
-            or any(not label for label in domain_labels)
-            or len(domain_labels) < 2
-            or any(character.isspace() for character in value)
-        ):
-            raise ValueError("work_email must be a valid company-style email")
-        return value
+        return _normalize_company_email(value, "work_email")
+
+    @field_validator("manager_name", "manager_title")
+    @classmethod
+    def normalize_optional_manager_text(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = value.strip()
+        return normalized or None
+
+    @field_validator("manager_work_email")
+    @classmethod
+    def normalize_manager_work_email(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        return _normalize_company_email(value, "manager_work_email")
+
+    @model_validator(mode="after")
+    def manager_information_must_be_complete(self) -> "VerifiedEmployeeProfile":
+        has_manager_details = any(
+            value is not None
+            for value in (
+                self.manager_name,
+                self.manager_work_email,
+                self.manager_title,
+            )
+        )
+        if not has_manager_details:
+            self.manager_id = _reject_blank(self.manager_id).strip()
+            return self
+
+        if self.manager_name is None or self.manager_work_email is None:
+            raise ValueError(
+                "manager_name and manager_work_email are required when manager details are provided"
+            )
+        explicit_manager_id = self.manager_id.strip()
+        self.manager_id = explicit_manager_id or self.manager_work_email
+        return self
 
 
 class RoleDefinition(BaseModel):

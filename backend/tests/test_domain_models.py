@@ -79,6 +79,52 @@ def test_verified_employee_profile_rejects_long_notes() -> None:
         make_employee_profile(notes="x" * 1001)
 
 
+def test_manager_details_are_normalized_and_derive_manager_id() -> None:
+    profile = make_employee_profile(
+        manager_id="",
+        manager_name="  Jane Smith  ",
+        manager_work_email=" JANE.SMITH@EXAMPLE.COM ",
+        manager_title="  Engineering Manager  ",
+    )
+
+    assert profile.manager_name == "Jane Smith"
+    assert profile.manager_work_email == "jane.smith@example.com"
+    assert profile.manager_title == "Engineering Manager"
+    assert profile.manager_id == "jane.smith@example.com"
+
+
+@pytest.mark.parametrize(
+    "overrides",
+    [
+        {"manager_id": "", "manager_name": "Jane Smith"},
+        {"manager_id": "", "manager_work_email": "jane.smith@example.com"},
+    ],
+)
+def test_new_manager_details_require_name_and_email(
+    overrides: dict[str, object],
+) -> None:
+    with pytest.raises(ValidationError):
+        make_employee_profile(**overrides)
+
+
+def test_explicit_manager_id_remains_backward_compatible() -> None:
+    profile = make_employee_profile(manager_id="legacy-manager-001")
+
+    assert profile.manager_id == "legacy-manager-001"
+    assert profile.manager_name is None
+    assert profile.manager_work_email is None
+
+
+def test_explicit_manager_id_is_preserved_with_manager_details() -> None:
+    profile = make_employee_profile(
+        manager_id="directory-manager-001",
+        manager_name="Jane Smith",
+        manager_work_email="jane.smith@example.com",
+    )
+
+    assert profile.manager_id == "directory-manager-001"
+
+
 def test_onboarding_plan_rejects_duplicate_ids() -> None:
     employee = make_employee_profile()
     recommendation = make_access_recommendation()

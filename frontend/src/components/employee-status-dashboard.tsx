@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect } from "react";
 import { useOnboardingSession } from "@/components/onboarding-session-provider";
 import { StatusBadge, WorkspaceHeading } from "@/components/workspace-overview";
+import { SetupHandoffPackage } from "@/components/setup-handoff-package";
 import {
   createEmptyDemoState,
   deriveOnboardingMetrics,
@@ -80,6 +81,9 @@ export function EmployeeStatusDashboard({ employeeId }: { employeeId: string }) 
             <Detail label="Operating system" value={formatOperatingSystem(employee.operating_system)} />
             <Detail label="Location" value={employee.location} />
             <Detail label="Work email" value={employee.work_email} />
+            <Detail label="Manager" value={employee.manager_name ?? employee.manager_id} />
+            {employee.manager_work_email ? <Detail label="Manager email" value={employee.manager_work_email} /> : null}
+            {employee.manager_title ? <Detail label="Manager title" value={employee.manager_title} /> : null}
           </dl>
           <StatusBadge status={status} />
         </div>
@@ -111,6 +115,15 @@ export function EmployeeStatusDashboard({ employeeId }: { employeeId: string }) 
           <Metric label="Blocked access" value={String(metrics.blockedAccess)} />
           <Metric label="Setup preview" value={metrics.setupPreviewGenerated ? "Prepared" : "Not prepared"} />
         </div>
+      </section>
+
+      <section className="border border-[var(--boardly-border)] bg-white p-5 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
+        <div className="flex items-center justify-between gap-4"><div><h3 className="text-lg font-bold text-[var(--boardly-text)]">Access risk distribution</h3><p className="mt-1 text-sm text-[var(--boardly-muted)]">Real recommendations grouped by current policy outcome.</p></div><span className="text-sm font-bold text-[var(--boardly-text)]">{result.plan.access_recommendations.length} total</span></div>
+        <AccessDistribution
+          recommended={Math.max(result.plan.access_recommendations.length - metrics.approvalRequired - metrics.blockedAccess, 0)}
+          approval={metrics.approvalRequired}
+          blocked={metrics.blockedAccess}
+        />
       </section>
 
       <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-soft">
@@ -155,6 +168,8 @@ export function EmployeeStatusDashboard({ employeeId }: { employeeId: string }) 
         <ReadinessCard title="Setup readiness" text={metrics.setupPreviewGenerated ? "Setup preview prepared for human review." : "Setup preview has not been prepared."} />
         <ReadinessCard title="Demo tickets" text={`${metrics.demoTickets} local demo tickets stored in Boardly.`} />
       </div>
+
+      <SetupHandoffPackage employee={employee} />
     </div>
   );
 }
@@ -166,6 +181,25 @@ function Metric({ label, value }: { label: string; value: string }) {
       <p className="mt-3 text-2xl font-bold text-[#6E36E4]">{value}</p>
     </article>
   );
+}
+
+function AccessDistribution({ recommended, approval, blocked }: { recommended: number; approval: number; blocked: number }) {
+  const total = recommended + approval + blocked;
+  const width = (value: number) => `${total === 0 ? 0 : (value / total) * 100}%`;
+  return (
+    <div className="mt-5">
+      <div className="flex h-4 overflow-hidden rounded-full bg-slate-100" aria-label={`${recommended} recommended, ${approval} requiring approval, ${blocked} blocked`}>
+        <span className="bg-emerald-500" style={{ width: width(recommended) }} />
+        <span className="bg-amber-500" style={{ width: width(approval) }} />
+        <span className="bg-red-500" style={{ width: width(blocked) }} />
+      </div>
+      <dl className="mt-3 grid grid-cols-3 gap-3 text-xs"><DistributionKey label="Recommended" value={recommended} color="bg-emerald-500" /><DistributionKey label="Human review" value={approval} color="bg-amber-500" /><DistributionKey label="Blocked" value={blocked} color="bg-red-500" /></dl>
+    </div>
+  );
+}
+
+function DistributionKey({ label, value, color }: { label: string; value: number; color: string }) {
+  return <div><dt className="flex items-center gap-2 text-[var(--boardly-muted)]"><span className={`h-2 w-2 ${color}`} />{label}</dt><dd className="mt-1 font-bold text-[var(--boardly-text)]">{value}</dd></div>;
 }
 
 function Attention({ label, values }: { label: string; values: string[] }) {

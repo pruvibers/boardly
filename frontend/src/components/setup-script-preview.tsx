@@ -189,21 +189,44 @@ function NewcomerPreviewDetails({
           Advanced technical preview
         </summary>
         <div className="mt-5 space-y-5 border-t border-gray-200 pt-5">
-          <StringList
-            title="Command review list"
-            values={preview.executable_commands}
-          />
+          <p className="border-l-4 border-amber-400 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-950">
+            Visible review warning: inspect every command before an authorized IT operator considers execution outside Boardly.
+          </p>
+          <CommandReviewList values={preview.executable_commands} />
           <section>
             <h4 className="text-base font-bold text-gray-950">
               PowerShell preview content
             </h4>
-            <pre className="mt-3 max-w-full overflow-x-auto rounded-xl border border-gray-200 bg-gray-950 p-4 text-sm leading-6 text-gray-100">
+            <div className="mt-3 overflow-hidden border border-slate-700 bg-slate-950 shadow-[0_12px_28px_rgba(15,23,42,0.18)]">
+              <div className="flex items-center justify-between border-b border-slate-700 px-4 py-2 text-xs font-semibold text-slate-300"><span>Full generated content</span><span>{preview.filename}</span></div>
+            <pre className="max-w-full overflow-x-auto p-4 font-mono text-xs leading-6 text-slate-100 sm:text-sm">
               <code>{preview.content}</code>
             </pre>
+            </div>
           </section>
         </div>
       </details>
     </div>
+  );
+}
+
+function CommandReviewList({ values }: { values: string[] }) {
+  return (
+    <section className="border border-[var(--boardly-border)] bg-white p-4">
+      <h4 className="text-base font-bold text-[var(--boardly-text)]">Command review list</h4>
+      {values.length > 0 ? (
+        <ol className="mt-3 space-y-2">
+          {values.map((value, index) => (
+            <li key={value} className="grid grid-cols-[2rem_minmax(0,1fr)] gap-2 bg-slate-950 px-3 py-2 font-mono text-xs leading-5 text-slate-100">
+              <span className="text-slate-500">{String(index + 1).padStart(2, "0")}</span>
+              <code className="overflow-x-auto whitespace-nowrap">{value}</code>
+            </li>
+          ))}
+        </ol>
+      ) : (
+        <p className="mt-3 text-sm text-[var(--boardly-muted)]">No executable commands returned.</p>
+      )}
+    </section>
   );
 }
 

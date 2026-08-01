@@ -52,6 +52,10 @@ export function OperatorPolicyReview({ employeeId }: { employeeId: string }) {
             <p className="mt-2 text-sm text-gray-600">
               {employee.employee_id} · {employee.role_id} · {employee.team_id}
             </p>
+            <p className="mt-1 text-xs text-gray-500">
+              Manager: {employee.manager_name ?? employee.manager_id}
+              {employee.manager_title ? ` · ${employee.manager_title}` : ""}
+            </p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Link href={`/workspace/employees/${encodedId}`} className="rounded-lg border border-purple-200 px-3 py-2 text-sm font-bold text-[#6E36E4]">

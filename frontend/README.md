@@ -59,4 +59,22 @@ Admin newcomer-preview links open in a new tab and hydrate the requested employe
 
 Plans and interactive demo progress are stored in the local Boardly SQLite database and restored after refresh. Demo IT tickets are local only and are not sent externally. Document acknowledgments are non-binding, software confirmations are self-reported, and PDF review summaries contain demo summary data rather than source company documents.
 
-Setup previews require explicit user action and currently support Windows PowerShell. Boardly never executes, copies, launches, or downloads setup scripts. Access recommendations remain read-only: no access is approved or provisioned from the frontend.
+Setup previews require explicit user action and currently support Windows PowerShell. Boardly never executes, copies to the clipboard, or launches setup commands. Newcomers cannot download setup scripts; the reviewed admin handoff described below is the only download path. Access recommendations remain read-only: no access is approved or provisioned from the frontend.
+
+## Organization-Aware Onboarding
+
+The HR/IT form builds its department options from a small default catalog plus distinct departments found in persisted plans. Operators may add a trimmed custom department inline; case-insensitive duplicates reuse the existing visible label. Department extension does not change role policy, so incompatible role and department combinations remain rejected by the deterministic planner.
+
+New submissions collect manager full name and normalized work email, with an optional title. Existing managers are derived from persisted plan data and can be selected again. The normalized manager email becomes the deterministic `manager_id` for a new manager unless an existing explicit ID is available. Legacy plans containing only `manager_id` remain compatible.
+
+Software confirmation is self-reported and synchronized through the persisted demo-state API across newcomer Overview, Resources, Setup, and the HR employee dashboard. Boardly does not detect or verify installed software.
+
+## Boardly Intelligence
+
+Boardly intelligence and the onboarding guide use deterministic plan, policy, verified-input, and progress data. They do not make a live AI request and should not be described as a live AI assistant unless a real provider is added later.
+
+## Admin Setup Handoff
+
+The HR employee dashboard can prepare a fresh real backend setup preview and, after explicit command-review acknowledgment, download an admin-only ZIP containing `README.md`, `boardly-setup.ps1`, `manifest.json`, and `SHA256SUMS.txt`. The PowerShell content is exactly the backend preview response; the browser does not generate additional commands.
+
+Boardly never executes the package. Execution, if approved, happens outside Boardly under authorized IT controls. Windows PowerShell is currently the only supported executable format, and Linux shell export is not implemented.
