@@ -7,6 +7,7 @@ import {
   NewcomerShell,
   type NewcomerView,
 } from "@/components/newcomer-shell";
+import { useNewcomerSessionMode } from "@/components/newcomer-session-mode";
 import { useOnboardingSession } from "@/components/onboarding-session-provider";
 
 export function NewcomerEmployeePage({
@@ -17,57 +18,51 @@ export function NewcomerEmployeePage({
   activeView: NewcomerView;
 }) {
   const router = useRouter();
+  const sessionMode = useNewcomerSessionMode();
   const {
+    demoStates,
     hydrateEmployee,
     hydrationError,
     isHydrating,
     results,
     saveStatusByEmployee,
   } = useOnboardingSession();
-  const [previewEnded, setPreviewEnded] = useState(false);
-  const [hydratedEmployeeId, setHydratedEmployeeId] = useState<string | null>(
-    null,
-  );
-  const [isRouteLoading, setIsRouteLoading] = useState(true);
   const result = results.find(
     (item) => item.plan.employee.employee_id === employeeId,
   );
+  const hasCachedEmployee = Boolean(
+    result && Object.prototype.hasOwnProperty.call(demoStates, employeeId),
+  );
+  const [isRouteLoading, setIsRouteLoading] = useState(!hasCachedEmployee);
 
   useEffect(() => {
+    if (hasCachedEmployee) {
+      setIsRouteLoading(false);
+      return;
+    }
     let isActive = true;
-    setHydratedEmployeeId(null);
     setIsRouteLoading(true);
-    setPreviewEnded(false);
-    void hydrateEmployee(employeeId).then((loaded) => {
+    void hydrateEmployee(employeeId).then(() => {
       if (!isActive) return;
-      setHydratedEmployeeId(loaded ? employeeId : null);
       setIsRouteLoading(false);
     });
     return () => {
       isActive = false;
     };
-  }, [employeeId, hydrateEmployee]);
+  }, [employeeId, hasCachedEmployee, hydrateEmployee]);
 
   function endPreview() {
-    setPreviewEnded(true);
-  }
-
-  if (previewEnded) {
-    return (
-      <NewcomerShell>
-        <NoActivePreview />
-      </NewcomerShell>
-    );
+    router.push(`/workspace/employees/${encodeURIComponent(employeeId)}`);
   }
 
   if (
     !result ||
-    hydratedEmployeeId !== employeeId ||
+    !hasCachedEmployee ||
     result.plan.employee.employee_id !== employeeId
   ) {
     const loading = isRouteLoading || isHydrating;
     return (
-      <NewcomerShell>
+      <NewcomerShell sessionMode={sessionMode}>
         <section className="boardly-surface mx-auto max-w-3xl border-purple-100 px-6 py-12 text-center">
           <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#6E36E4]">
             Newcomer onboarding
@@ -90,11 +85,11 @@ export function NewcomerEmployeePage({
     <NewcomerShell
       employeeId={employeeId}
       activeView={activeView}
-      onEndPreview={endPreview}
+      sessionMode={sessionMode}
+      onEndPreview={sessionMode === "operator-preview" ? endPreview : undefined}
       saveStatus={saveStatusByEmployee[employeeId]}
     >
       <NewcomerPortalPreview
-        key={`${employeeId}:${activeView}`}
         result={result}
         activeView={activeView}
         onViewChange={(view) => {
@@ -108,22 +103,16 @@ export function NewcomerEmployeePage({
 
 export function NoActivePreview() {
   return (
-    <section className="boardly-surface mx-auto max-w-4xl overflow-hidden border-purple-100 text-center">
-      <div className="border-b border-purple-100 bg-purple-50/60 px-6 py-8 sm:px-10">
-        <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#6E36E4]">
-          Newcomer preview
-        </p>
-        <h1 className="mt-3 text-3xl font-bold text-gray-950">
-          No active preview
-        </h1>
-        <p className="mx-auto mt-4 max-w-2xl text-sm leading-6 text-gray-600 sm:text-base">
-          The current preview selection has ended. Persisted employee plans and
-          demo progress remain unchanged in the local Boardly demo database.
-        </p>
-      </div>
-      <div className="px-6 py-6 text-sm leading-6 text-gray-600">
-        Use Switch role to return to the Boardly experience selector.
-      </div>
+    <section className="boardly-surface mx-auto max-w-3xl px-6 py-12 text-center sm:px-10">
+      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--boardly-accent)]">
+        Newcomer preview
+      </p>
+      <h1 className="mt-3 text-2xl font-semibold tracking-[-0.02em]">
+        No onboarding selected
+      </h1>
+      <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-[var(--boardly-muted)]">
+        Choose an employee from the operations workspace to open their onboarding preview.
+      </p>
     </section>
   );
 }

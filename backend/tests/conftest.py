@@ -1,9 +1,9 @@
 import os
-import tempfile
 from pathlib import Path
 
+import pytest
 
-_database_directory = tempfile.TemporaryDirectory(prefix="boardly-tests-")
-os.environ["BOARDLY_DB_PATH"] = str(
-    Path(_database_directory.name) / "boardly-tests.sqlite3"
-)
+
+@pytest.fixture(autouse=True)
+def isolate_database(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("BOARDLY_DB_PATH", str(tmp_path / "boardly-tests.sqlite3"))

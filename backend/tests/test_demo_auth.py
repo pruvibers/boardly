@@ -93,7 +93,7 @@ def test_incorrect_password_is_rejected() -> None:
     assert response.json()["detail"] == "Invalid demo credentials."
 
 
-def test_duplicate_email_for_different_employee_returns_422() -> None:
+def test_duplicate_email_for_different_employee_returns_409() -> None:
     first = client.post(
         "/onboarding/plans/generate",
         json=employee_payload("auth-duplicate-001", "duplicate@boardly.local"),
@@ -104,11 +104,11 @@ def test_duplicate_email_for_different_employee_returns_422() -> None:
     )
 
     assert first.status_code == 200
-    assert duplicate.status_code == 422
+    assert duplicate.status_code == 409
     assert "already assigned" in duplicate.json()["detail"]
 
 
-def test_same_employee_regeneration_is_accepted() -> None:
+def test_same_employee_regeneration_is_rejected() -> None:
     first = client.post(
         "/onboarding/plans/generate",
         json=employee_payload("auth-regenerate-001", "regen@boardly.local"),
@@ -119,4 +119,5 @@ def test_same_employee_regeneration_is_accepted() -> None:
     )
 
     assert first.status_code == 200
-    assert replacement.status_code == 200
+    assert replacement.status_code == 409
+    assert "already exists" in replacement.json()["detail"]

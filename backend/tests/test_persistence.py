@@ -4,7 +4,11 @@ from pathlib import Path
 import pytest
 
 from app.domain.models import VerifiedEmployeeProfile
-from app.persistence.database import BoardlyDatabase, DuplicateWorkEmailError
+from app.persistence.database import (
+    BoardlyDatabase,
+    DuplicateEmployeeIdError,
+    DuplicateWorkEmailError,
+)
 from app.persistence.models import DemoItTicket, PersistedDemoState
 from app.planner.service import PlannedOnboardingResult, generate_onboarding_plan
 from app.setup_scripts.service import COMPANY_VPN_MANUAL_STEP
@@ -103,14 +107,33 @@ def test_job_title_round_trips_through_persistence(tmp_path: Path) -> None:
     assert persisted.plan.employee.job_title == "Customer Platform Analyst"
 
 
-def test_plan_replacement_by_employee_id(tmp_path: Path) -> None:
+def test_duplicate_employee_id_is_rejected_without_replacing_plan(
+    tmp_path: Path,
+) -> None:
     database = make_database(tmp_path)
     database.save_plan(make_result("persist-001", "first@example.com"))
     replacement = make_result(
         "persist-001", "replacement@example.com", "Replacement Name"
     )
 
-    database.save_plan(replacement)
+    with pytest.raises(DuplicateEmployeeIdError):
+        database.save_plan(replacement)
+
+    assert database.list_plans() == [
+        make_result("persist-001", "first@example.com")
+    ]
+    assert database.get_plan_by_email("first@example.com") is not None
+    assert database.get_plan_by_email("replacement@example.com") is None
+
+
+def test_explicit_plan_replacement_by_employee_id(tmp_path: Path) -> None:
+    database = make_database(tmp_path)
+    database.save_plan(make_result("persist-001", "first@example.com"))
+    replacement = make_result(
+        "persist-001", "replacement@example.com", "Replacement Name"
+    )
+
+    database.save_plan(replacement, replace_existing=True)
 
     assert database.list_plans() == [replacement]
     assert database.get_plan_by_email("replacement@example.com") == replacement
@@ -135,15 +158,16 @@ def test_duplicate_email_for_another_employee_is_rejected(tmp_path: Path) -> Non
         database.save_plan(make_result("persist-002", "SHARED@example.com"))
 
 
-def test_same_employee_regeneration_with_same_email_is_accepted(
+def test_same_employee_regeneration_with_same_email_is_rejected(
     tmp_path: Path,
 ) -> None:
     database = make_database(tmp_path)
     database.save_plan(make_result("persist-001", "same@example.com"))
 
-    database.save_plan(
-        make_result("persist-001", "SAME@example.com", "Updated Employee")
-    )
+    with pytest.raises(DuplicateEmployeeIdError):
+        database.save_plan(
+            make_result("persist-001", "SAME@example.com", "Updated Employee")
+        )
 
     assert database.get_plan("persist-001") is not None
 
@@ -242,7 +266,9 @@ def test_regeneration_resets_only_that_employees_demo_state(
     database.save_demo_state("persist-001", first_state)
     database.save_demo_state("persist-002", second_state)
 
-    database.save_plan(make_result("persist-001", "first@example.com"))
+    database.save_plan(
+        make_result("persist-001", "first@example.com"), replace_existing=True
+    )
 
     assert database.get_demo_state("persist-001") == PersistedDemoState()
     assert database.get_demo_state("persist-002") == second_state

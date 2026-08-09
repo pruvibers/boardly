@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { BoardlyLogo } from "@/components/boardly-logo";
+import type { NewcomerSessionMode } from "@/components/newcomer-session-mode";
 
 export type NewcomerView =
   | "overview"
@@ -23,6 +24,7 @@ type NewcomerShellProps = {
   children: ReactNode;
   employeeId?: string;
   activeView?: NewcomerView;
+  sessionMode?: NewcomerSessionMode;
   onEndPreview?: () => void;
   saveStatus?: "idle" | "saving" | "saved" | "error";
 };
@@ -31,6 +33,7 @@ export function NewcomerShell({
   children,
   employeeId,
   activeView,
+  sessionMode = "newcomer",
   onEndPreview,
   saveStatus = "idle",
 }: NewcomerShellProps) {
@@ -74,10 +77,10 @@ export function NewcomerShell({
                   onClick={() => setIsSessionInfoOpen((current) => !current)}
                   className="inline-flex rounded-lg border border-violet-300/40 bg-white/10 px-2.5 py-1.5 text-xs font-bold text-violet-100 transition hover:bg-white/15 focus:outline-none focus:ring-2 focus:ring-white/50"
                 >
-                  Session preview
+                  {sessionMode === "operator-preview" ? "Preview info" : "Demo info"}
                 </button>
               ) : null}
-              {onEndPreview ? (
+              {sessionMode === "operator-preview" && onEndPreview ? (
                 <button
                   type="button"
                   onClick={onEndPreview}
@@ -86,14 +89,16 @@ export function NewcomerShell({
                   End preview
                 </button>
               ) : null}
-              <form action="/api/demo-auth/sign-out" method="post">
-                <button
-                  type="submit"
-                  className="inline-flex rounded-lg px-3 py-2 text-sm font-semibold text-slate-300 transition hover:bg-white/10 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/50"
-                >
-                  Switch role
-                </button>
-              </form>
+              {sessionMode === "newcomer" ? (
+                <form action="/api/demo-auth/sign-out" method="post">
+                  <button
+                    type="submit"
+                    className="inline-flex rounded-lg px-3 py-2 text-sm font-semibold text-slate-300 transition hover:bg-white/10 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/50"
+                  >
+                    Sign out
+                  </button>
+                </form>
+              ) : null}
               {isSessionInfoOpen ? (
                 <section
                   id="demo-session-information"
@@ -172,23 +177,18 @@ export function NewcomerShell({
             </div>
           </nav>
         ) : null}
-        {activeView ? (
+        {activeView && (saveStatus === "saving" || saveStatus === "error") ? (
           <div className="border-t border-[var(--boardly-border)] bg-[var(--boardly-elevated)] px-5 py-2 text-center text-xs font-semibold leading-5 text-[var(--boardly-muted)] sm:px-8">
-            <span>Demo progress is stored in the local Boardly demo database.</span>
-            {saveStatus !== "idle" ? (
-              <span aria-live="polite" className="ml-2">
-                {saveStatus === "saving"
-                  ? "Saving demo progress..."
-                  : saveStatus === "saved"
-                    ? "Demo progress saved"
-                    : "Changes could not be saved"}
-              </span>
-            ) : null}
+            <span aria-live="polite">
+              {saveStatus === "saving"
+                ? "Saving changes…"
+                : "Changes could not be saved. Try again."}
+            </span>
           </div>
         ) : null}
       </header>
 
-      <main className="mx-auto w-full max-w-7xl px-5 py-6 sm:px-8 lg:px-10 lg:py-8">
+      <main id="main-content" tabIndex={-1} className="mx-auto w-full max-w-7xl px-5 py-6 sm:px-8 lg:px-10 lg:py-8">
         {children}
       </main>
     </div>

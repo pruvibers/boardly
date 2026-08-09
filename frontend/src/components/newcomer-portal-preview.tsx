@@ -11,6 +11,9 @@ import {
 } from "@/components/onboarding-session-provider";
 import { SetupHandoffPackage } from "@/components/setup-handoff-package";
 import { SetupScriptPreviewPanel } from "@/components/setup-script-preview";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { employeeJobTitle } from "@/lib/employee-display";
 import type {
   AccessRecommendation,
@@ -138,20 +141,10 @@ export function NewcomerPortalPreview({
     plan.document_ids,
     employeeDocumentOverrides,
   );
-  const summaryReceivedCount = countTrueValues(
-    plan.document_ids,
-    employeeSummaryReceiptState,
-  );
-  const signedDocumentCount = plan.document_ids.filter(
-    (documentId) => employeeSignatures[documentId]?.signed === true,
-  ).length;
   const confirmedSoftwareCount = countTrueValues(
     plan.software_ids,
     employeeSoftwareConfirmations,
   );
-  const submittedTicketCount = Object.values(employeeTickets).filter(
-    (ticket) => ticket.submitted,
-  ).length;
   const policyByResourceId = new Map(
     policy_decisions.map((decision) => [decision.resource_id, decision]),
   );
@@ -224,67 +217,41 @@ export function NewcomerPortalPreview({
       {activeView === "overview" ? (
       <section
         id="onboard-overview"
-        tabIndex={0}
-        className="space-y-6 focus:outline-none"
+        className="space-y-6"
       >
-        <WelcomeHeader
-          result={result}
-          completedTaskCount={completedTaskCount}
-          totalTaskCount={totalTaskCount}
-          completionPercentage={completionPercentage}
-          dayOneCompletedCount={dayOneCompletedCount}
-          dayOneTotal={dayOneItems.length}
-          weekOneCompletedCount={weekOneCompletedCount}
-          weekOneTotal={weekOneItems.length}
-        />
+        <WelcomeHeader result={result} />
 
         <section aria-labelledby="newcomer-summary-title">
-          <SectionHeading
-            eyebrow="At a glance"
-            id="newcomer-summary-title"
-            title="Your onboarding at a glance"
-          />
           <OnboardingSummary
             completionPercentage={completionPercentage}
             completedTaskCount={completedTaskCount}
             totalTaskCount={totalTaskCount}
             currentPhase={currentPhase}
             nextTask={nextTask}
-            documentTotal={plan.document_ids.length}
-            reviewedDocumentCount={reviewedDocumentCount}
-            summaryReceivedCount={summaryReceivedCount}
-            signedDocumentCount={signedDocumentCount}
-            softwareTotal={plan.software_ids.length}
-            confirmedSoftwareCount={confirmedSoftwareCount}
-            approvalAccessCount={approvalAccessCount}
-            blockedAccessCount={blockedAccessCount}
-            recommendedAccessCount={recommendedAccessCount}
-            submittedTicketCount={submittedTicketCount}
             onContinue={() => onViewChange(nextTask ? "tasks" : "setup")}
           />
         </section>
 
-        <div className="grid gap-5 lg:grid-cols-2">
+        <div className="grid gap-5 lg:grid-cols-3">
           <DeviceReadinessCard
             operatingSystem={employee.operating_system}
             softwareCount={plan.software_ids.length}
+            onOpen={() => onViewChange("setup")}
           />
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-1">
-            <OverviewDetailCard
-              title="Document actions"
-              value={`${reviewedDocumentCount} reviewed, ${summaryReceivedCount} demo summaries received`}
-              description={`${signedDocumentCount} non-binding demo acknowledgments are saved locally.`}
-              buttonLabel="Review documents"
-              onOpen={() => onViewChange("resources")}
-            />
-            <OverviewDetailCard
-              title="Access review"
-              value={`${approvalAccessCount} waiting, ${blockedAccessCount} blocked`}
-              description="Human decisions happen before any access may be provisioned."
-              buttonLabel="View access"
-              onOpen={() => onViewChange("access")}
-            />
-          </div>
+          <OverviewDetailCard
+            title="Resources"
+            value={`${Math.max(plan.document_ids.length - reviewedDocumentCount, 0)} documents · ${Math.max(plan.software_ids.length - confirmedSoftwareCount, 0)} software remaining`}
+            description="Review the resources prepared for your role."
+            buttonLabel="Review resources"
+            onOpen={() => onViewChange("resources")}
+          />
+          <OverviewDetailCard
+            title="Access"
+            value={`${approvalAccessCount} waiting · ${blockedAccessCount} blocked`}
+            description="Access decisions are reviewed by an authorized person."
+            buttonLabel="View access"
+            onOpen={() => onViewChange("access")}
+          />
         </div>
 
         <BoardlyIntelligence
@@ -299,8 +266,7 @@ export function NewcomerPortalPreview({
       {activeView === "tasks" ? (
       <section
         id="onboard-tasks"
-        tabIndex={0}
-        className="space-y-6 focus:outline-none"
+        className="space-y-6"
       >
         <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(320px,0.72fr)] lg:items-end">
           <SectionHeading
@@ -342,8 +308,7 @@ export function NewcomerPortalPreview({
       {activeView === "resources" ? (
       <section
         id="onboard-resources"
-        tabIndex={0}
-        className="space-y-6 focus:outline-none"
+        className="space-y-6"
       >
         <SectionHeading
           eyebrow="Tools and resources"
@@ -388,8 +353,7 @@ export function NewcomerPortalPreview({
       {activeView === "access" ? (
       <section
         id="onboard-access"
-        tabIndex={0}
-        className="space-y-5 focus:outline-none"
+        className="space-y-5"
       >
         <SectionHeading
           eyebrow="Access requests"
@@ -472,8 +436,7 @@ export function NewcomerPortalPreview({
       {activeView === "setup" ? (
       <section
         id="onboard-setup"
-        tabIndex={0}
-        className="space-y-5 focus:outline-none"
+        className="space-y-5"
       >
         <SectionHeading
           eyebrow="Device setup"
@@ -565,86 +528,32 @@ export function NewcomerPortalPreview({
   );
 }
 
-function WelcomeHeader({
-  result,
-  completedTaskCount,
-  totalTaskCount,
-  completionPercentage,
-  dayOneCompletedCount,
-  dayOneTotal,
-  weekOneCompletedCount,
-  weekOneTotal,
-}: {
-  result: PlannedOnboardingResult;
-  completedTaskCount: number;
-  totalTaskCount: number;
-  completionPercentage: number;
-  dayOneCompletedCount: number;
-  dayOneTotal: number;
-  weekOneCompletedCount: number;
-  weekOneTotal: number;
-}) {
+function WelcomeHeader({ result }: { result: PlannedOnboardingResult }) {
   const { plan } = result;
   const { employee } = plan;
   return (
-    <header className="boardly-surface overflow-hidden border-l-4 border-violet-500 bg-[var(--boardly-ink)] text-white">
-      <div className="p-6 sm:p-8 lg:p-9">
-        <p className="text-xs font-bold uppercase tracking-[0.14em] text-purple-200">
-          Your onboarding plan
-        </p>
-        <h1 className="mt-3 text-3xl font-bold sm:text-4xl">
+    <Card as="header" padding="lg">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
+        <div>
+          <Badge tone="brand">Your onboarding</Badge>
+          <h1 className="mt-4 text-3xl font-semibold tracking-[-0.03em] sm:text-4xl">
           Welcome, {employee.full_name}
-        </h1>
-        <p className="mt-4 max-w-3xl text-sm leading-6 text-purple-100 sm:text-base">
-          {plan.welcome_summary}
-        </p>
-        <dl className="mt-7 grid gap-x-6 gap-y-4 border-t border-white/20 pt-6 text-sm sm:grid-cols-2 lg:grid-cols-3">
-          <HeaderDetail label="Job title" value={employeeJobTitle(employee)} />
-          <HeaderDetail label="Policy role template" value={employee.role_id} />
-          <HeaderDetail label="Team ID" value={employee.team_id} />
-          <HeaderDetail label="Department" value={employee.department} />
-          <HeaderDetail
-            label="Seniority"
-            value={formatToken(employee.seniority)}
-          />
-          <HeaderDetail
-            label="Operating system"
-            value={formatOperatingSystem(employee.operating_system)}
-          />
-          <HeaderDetail label="Location" value={employee.location} />
+          </h1>
+          <p className="mt-2 text-base font-medium text-[var(--boardly-text)]">
+            {employeeJobTitle(employee)} · {employee.department}
+          </p>
+          <p className="mt-4 max-w-3xl text-sm leading-6 text-[var(--boardly-muted)] sm:text-base">
+            Your onboarding plan is ready. Start with the next task below.
+          </p>
+        </div>
+        <dl className="grid min-w-64 gap-4 rounded-[10px] border border-[var(--boardly-border)] bg-[var(--boardly-elevated)] p-4 text-sm sm:grid-cols-3 lg:grid-cols-1">
           {employee.manager_name ? (
-            <HeaderDetail label="Your manager" value={employee.manager_name} />
+            <WelcomeDetail label="Manager" value={employee.manager_name} />
           ) : null}
+          <WelcomeDetail label="Location" value={employee.location} />
         </dl>
-        <section className="mt-8 rounded-xl border border-white/20 bg-white/10 p-5">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <p className="text-sm font-bold">Onboarding progress</p>
-              <p className="mt-1 text-sm text-purple-100">
-                {completedTaskCount} of {totalTaskCount} tasks completed
-              </p>
-            </div>
-            <p className="text-3xl font-bold">{completionPercentage}%</p>
-          </div>
-          <progress
-            aria-label="Persisted checklist progress"
-            className="mt-4 h-3 w-full accent-purple-200"
-            max={Math.max(totalTaskCount, 1)}
-            value={completedTaskCount}
-          />
-          <div className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
-            <p className="rounded-lg bg-white/10 px-3 py-2 text-purple-100">
-              <span className="font-bold text-white">Day one:</span>{" "}
-              {dayOneCompletedCount} of {dayOneTotal} complete
-            </p>
-            <p className="rounded-lg bg-white/10 px-3 py-2 text-purple-100">
-              <span className="font-bold text-white">Week one:</span>{" "}
-              {weekOneCompletedCount} of {weekOneTotal} complete
-            </p>
-          </div>
-        </section>
       </div>
-    </header>
+    </Card>
   );
 }
 
@@ -661,10 +570,10 @@ function SectionHeading({
 }) {
   return (
     <div className="mb-4">
-      <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#6E36E4]">
+      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--boardly-accent)]">
         {eyebrow}
       </p>
-      <h2 id={id} className="mt-2 text-2xl font-bold text-gray-950">
+      <h2 id={id} className="mt-2 text-2xl font-semibold tracking-[-0.02em] text-[var(--boardly-text)]">
         {title}
       </h2>
       {description ? (
@@ -676,11 +585,11 @@ function SectionHeading({
   );
 }
 
-function HeaderDetail({ label, value }: { label: string; value: string }) {
+function WelcomeDetail({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <dt className="text-xs font-bold uppercase text-purple-200">{label}</dt>
-      <dd className="mt-1 break-words font-semibold text-white">{value}</dd>
+      <dt className="text-xs font-medium text-[var(--boardly-muted)]">{label}</dt>
+      <dd className="mt-1 break-words font-semibold text-[var(--boardly-text)]">{value}</dd>
     </div>
   );
 }
@@ -691,16 +600,6 @@ function OnboardingSummary({
   totalTaskCount,
   currentPhase,
   nextTask,
-  documentTotal,
-  reviewedDocumentCount,
-  summaryReceivedCount,
-  signedDocumentCount,
-  softwareTotal,
-  confirmedSoftwareCount,
-  approvalAccessCount,
-  blockedAccessCount,
-  recommendedAccessCount,
-  submittedTicketCount,
   onContinue,
 }: {
   completionPercentage: number;
@@ -708,118 +607,71 @@ function OnboardingSummary({
   totalTaskCount: number;
   currentPhase: string;
   nextTask: EffectiveChecklistItem | undefined;
-  documentTotal: number;
-  reviewedDocumentCount: number;
-  summaryReceivedCount: number;
-  signedDocumentCount: number;
-  softwareTotal: number;
-  confirmedSoftwareCount: number;
-  approvalAccessCount: number;
-  blockedAccessCount: number;
-  recommendedAccessCount: number;
-  submittedTicketCount: number;
   onContinue: () => void;
 }) {
-  const softwarePercentage = percentage(confirmedSoftwareCount, softwareTotal);
   return (
-    <div className="grid gap-4 lg:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.85fr)]">
-      <article className="boardly-surface border-l-4 border-[var(--boardly-accent)] bg-[var(--boardly-ink)] p-6 text-white sm:p-7">
-        <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <p className="text-xs font-bold uppercase text-violet-200">Overall progress</p>
-            <p className="mt-2 text-5xl font-bold">{completionPercentage}%</p>
-            <p className="mt-2 text-sm text-slate-300">{completedTaskCount} of {totalTaskCount} checklist tasks complete</p>
-          </div>
-          <span className="self-start border border-white/20 bg-white/10 px-3 py-2 text-xs font-bold text-white">{currentPhase}</span>
-        </div>
-        <ProgressBar value={completionPercentage} label="Overall onboarding completion" trackClassName="bg-white/15" barClassName="bg-violet-300" />
-        <div className="mt-6 border-t border-white/15 pt-5">
-          <p className="text-xs font-bold uppercase text-slate-400">Next recommended task</p>
-          <p className="mt-2 text-lg font-bold">{nextTask?.item.title ?? "Prepare for final setup review"}</p>
-          <p className="mt-1 text-sm leading-6 text-slate-300">{nextTask?.item.description ?? "Your checklist is complete. Review device readiness and remaining approvals."}</p>
-          <button type="button" onClick={onContinue} className="mt-4 rounded-lg bg-white px-4 py-2.5 text-sm font-bold text-[var(--boardly-ink)] transition hover:bg-violet-50 focus:outline-none focus:ring-2 focus:ring-white/60 focus:ring-offset-2 focus:ring-offset-[var(--boardly-ink)]">Continue onboarding</button>
-        </div>
-      </article>
+    <div className="grid gap-5 lg:grid-cols-[minmax(0,1.25fr)_minmax(300px,0.75fr)]">
+      <Card as="article" padding="lg" className="border-[#d9d0f5]">
+        <Badge tone="brand">Next up</Badge>
+        <h2 id="newcomer-summary-title" className="mt-4 text-xl font-semibold tracking-[-0.02em] sm:text-2xl">
+          {nextTask?.item.title ?? "Prepare for final setup review"}
+        </h2>
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--boardly-muted)]">
+          {nextTask?.item.description ??
+            "Your checklist is complete. Review device readiness and remaining approvals."}
+        </p>
+        <Button size="lg" className="mt-5" onClick={onContinue}>
+          Continue onboarding
+          <ArrowIcon />
+        </Button>
+      </Card>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
-        <ReadinessSummary title="Documents" tone="violet">
-          <p>{reviewedDocumentCount}/{documentTotal} reviewed · {summaryReceivedCount}/{documentTotal} demo summaries received · {signedDocumentCount}/{documentTotal} demo acknowledged</p>
-          <div className="mt-3 grid grid-cols-3 gap-1" aria-label="Document readiness segments">
-            <MiniSegment value={percentage(reviewedDocumentCount, documentTotal)} label="Reviewed" />
-            <MiniSegment value={percentage(summaryReceivedCount, documentTotal)} label="Summary received" />
-            <MiniSegment value={percentage(signedDocumentCount, documentTotal)} label="Acknowledged" />
+      <Card as="article">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-sm font-medium text-[var(--boardly-muted)]">Task progress</p>
+            <p className="mt-1 text-4xl font-semibold tracking-[-0.03em]">{completionPercentage}%</p>
           </div>
-        </ReadinessSummary>
-        <ReadinessSummary title="Software" tone="green">
-          <p>{confirmedSoftwareCount}/{softwareTotal} confirmed · {Math.max(softwareTotal - confirmedSoftwareCount, 0)} remaining</p>
-          <ProgressBar value={softwarePercentage} label="Software confirmation progress" compact />
-        </ReadinessSummary>
-        <ReadinessSummary title="Access" tone={blockedAccessCount > 0 ? "red" : "amber"}>
-          <p>{approvalAccessCount} approval required · {blockedAccessCount} blocked · {recommendedAccessCount} recommended</p>
-        </ReadinessSummary>
-        <ReadinessSummary title="Support" tone="ink">
-          <p>{submittedTicketCount} local demo ticket{submittedTicketCount === 1 ? "" : "s"} prepared</p>
-          <p className="mt-1 text-xs text-[var(--boardly-muted)]">Stored locally and not sent externally.</p>
-        </ReadinessSummary>
-      </div>
+          <Badge tone="neutral">{currentPhase}</Badge>
+        </div>
+        <ProgressBar value={completionPercentage} label="Task completion" barClassName="bg-[var(--boardly-accent)]" />
+        <p className="mt-3 text-sm text-[var(--boardly-muted)]">
+          {completedTaskCount} of {totalTaskCount} tasks complete
+        </p>
+      </Card>
     </div>
   );
-}
-
-function ReadinessSummary({ title, tone, children }: { title: string; tone: "violet" | "green" | "amber" | "red" | "ink"; children: ReactNode }) {
-  const rail = { violet: "border-violet-500", green: "border-emerald-500", amber: "border-amber-500", red: "border-red-500", ink: "border-slate-700" }[tone];
-  return <article className={`boardly-surface border-l-4 ${rail} px-4 py-3`}><h3 className="text-sm font-bold text-[var(--boardly-text)]">{title}</h3><div className="mt-1 text-xs leading-5 text-[var(--boardly-muted)]">{children}</div></article>;
 }
 
 function ProgressBar({ value, label, compact = false, trackClassName = "bg-slate-200", barClassName = "bg-[var(--boardly-success)]" }: { value: number; label: string; compact?: boolean; trackClassName?: string; barClassName?: string }) {
   return <div className={`${compact ? "mt-3 h-1.5" : "mt-5 h-3"} overflow-hidden rounded-full ${trackClassName}`} role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={value}><div className={`h-full rounded-full ${barClassName}`} style={{ width: `${value}%` }} /></div>;
 }
 
-function MiniSegment({ value, label }: { value: number; label: string }) {
-  return <div className="h-1.5 overflow-hidden rounded-full bg-slate-200" role="progressbar" aria-label={`Documents ${label.toLowerCase()}`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={value}><div className="h-full bg-violet-500" style={{ width: `${value}%` }} /></div>;
-}
 
 function DeviceReadinessCard({
   operatingSystem,
   softwareCount,
+  onOpen,
 }: {
   operatingSystem: string;
   softwareCount: number;
+  onOpen: () => void;
 }) {
   const isWindows = operatingSystem === "windows";
   return (
-    <article className="boardly-surface p-6">
-      <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#6E36E4]">
-        Device readiness
+    <Card as="article" className="flex flex-col">
+      <Badge tone="neutral" className="self-start">
+        {formatOperatingSystem(operatingSystem)}
+      </Badge>
+      <h2 className="mt-4 text-base font-semibold">Device setup</h2>
+      <p className="mt-2 flex-1 text-sm leading-6 text-[var(--boardly-muted)]">
+        {softwareCount} software item{softwareCount === 1 ? "" : "s"} planned. {isWindows ? "Setup preview is available." : "Setup is reviewed manually for this device."}
       </p>
-      <h2 className="mt-2 text-xl font-bold text-gray-950">
-        Setup review at a glance
-      </h2>
-      <dl className="mt-5 grid gap-4 text-sm sm:grid-cols-2">
-        <OverviewDetail
-          label="Operating system"
-          value={formatOperatingSystem(operatingSystem)}
-        />
-        <OverviewDetail
-          label="Required software"
-          value={`${softwareCount} item${softwareCount === 1 ? "" : "s"}`}
-        />
-        <OverviewDetail
-          label="Setup preview support"
-          value={
-            isWindows
-              ? "Windows preview supported"
-              : "Preview not supported in this MVP"
-          }
-        />
-        <OverviewDetail label="Human review" value="Required" />
-        <OverviewDetail label="Automatic execution" value="Disabled" />
-        <OverviewDetail
-          label="Manual coordination"
-          value="Some software or VPN setup may require operator review"
-        />
-      </dl>
-    </article>
+      <Button variant="ghost" size="sm" className="mt-4 self-start" onClick={onOpen}>
+        Review setup
+        <ArrowIcon />
+      </Button>
+    </Card>
   );
 }
 
@@ -837,27 +689,30 @@ function OverviewDetailCard({
   onOpen: () => void;
 }) {
   return (
-    <article className="boardly-surface p-5">
-      <h2 className="text-base font-bold text-gray-950">{title}</h2>
-      <p className="mt-2 text-lg font-bold text-[#6E36E4]">{value}</p>
-      <p className="mt-2 text-sm leading-6 text-gray-600">{description}</p>
-      <button
-        type="button"
-        onClick={onOpen}
-        className="mt-3 text-sm font-bold text-[#6E36E4] transition hover:text-[#5B21B6] focus:outline-none focus:ring-2 focus:ring-[#6E36E4]/30"
-      >
+    <Card as="article" className="flex flex-col">
+      <h2 className="text-base font-semibold">{title}</h2>
+      <p className="mt-2 text-sm font-semibold text-[var(--boardly-text)]">{value}</p>
+      <p className="mt-2 flex-1 text-sm leading-6 text-[var(--boardly-muted)]">{description}</p>
+      <Button variant="ghost" size="sm" className="mt-4 self-start" onClick={onOpen}>
         {buttonLabel}
-      </button>
-    </article>
+        <ArrowIcon />
+      </Button>
+    </Card>
   );
 }
 
-function OverviewDetail({ label, value }: { label: string; value: string }) {
+function ArrowIcon() {
   return (
-    <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-      <dt className="font-semibold text-gray-500">{label}</dt>
-      <dd className="mt-1 font-bold leading-6 text-gray-950">{value}</dd>
-    </div>
+    <svg
+      aria-hidden="true"
+      className="h-4 w-4"
+      viewBox="0 0 20 20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+    >
+      <path d="m7 4 6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
 }
 
@@ -1600,30 +1455,27 @@ function BoardlyIntelligence({
 }) {
   const employee = result.plan.employee;
   return (
-    <section
-      className="boardly-surface bg-[var(--boardly-elevated)] p-5 sm:p-6"
-      aria-labelledby="boardly-intelligence-title"
-    >
-      <div className="grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)]">
-        <div className="border-l-4 border-[var(--boardly-accent)] pl-4">
-          <p className="text-xs font-bold uppercase text-[var(--boardly-accent)]">Recommendation rationale</p>
-          <h2 id="boardly-intelligence-title" className="mt-2 text-xl font-bold text-[var(--boardly-text)]">Boardly intelligence</h2>
-          <p className="mt-2 text-sm leading-6 text-[var(--boardly-muted)]">Derived from your verified role, policy decisions, and current progress.</p>
-        </div>
-        <div className="grid gap-3 md:grid-cols-2">
-          <IntelligenceItem title="Why this software" text={`${result.plan.software_ids.length} packages match the ${employee.role_id} template and ${formatOperatingSystem(employee.operating_system)} support.`} />
-          <IntelligenceItem title="Why access waits" text={`${approvalAccessCount} recommendations require a human decision before any external provisioning.`} />
-          <IntelligenceItem title="Active policy blocks" text={blockedAccessCount > 0 ? `${blockedAccessCount} access recommendations are blocked by deterministic policy.` : "No active policy blocks are present in this plan."} />
-          <IntelligenceItem title="Highest priority" text={nextTask ? `${nextTask.item.title} is the first incomplete ${formatToken(nextTask.item.phase).toLowerCase()} task.` : "The checklist is complete; setup and access review are the next priority."} />
-          <IntelligenceItem title="Inputs that shaped the plan" text={`${employee.role_id}; ${employee.department}; ${formatToken(employee.seniority)}; ${formatOperatingSystem(employee.operating_system)}; ${employee.team_id}.`} />
+    <details className="rounded-[var(--boardly-radius-surface)] border border-[var(--boardly-border)] bg-white shadow-[var(--boardly-shadow-surface)]">
+      <summary className="cursor-pointer px-5 py-4 text-sm font-semibold text-[var(--boardly-text)] sm:px-6">
+        Why this plan?
+      </summary>
+      <div className="border-t border-[var(--boardly-border)] p-5 sm:p-6">
+        <p className="max-w-3xl text-sm leading-6 text-[var(--boardly-muted)]">
+          Boardly uses your verified job context and company policy to prepare resources and route access for human review.
+        </p>
+        <div className="mt-4 grid gap-3 md:grid-cols-2">
+          <IntelligenceItem title="Planned resources" text={`${result.plan.software_ids.length} software items are tailored to ${employeeJobTitle(employee)} and ${formatOperatingSystem(employee.operating_system)}.`} />
+          <IntelligenceItem title="Human-reviewed access" text={`${approvalAccessCount} access item${approvalAccessCount === 1 ? "" : "s"} require an authorized person before provisioning.`} />
+          <IntelligenceItem title="Policy safeguards" text={blockedAccessCount > 0 ? `${blockedAccessCount} access item${blockedAccessCount === 1 ? " is" : "s are"} blocked by company policy.` : "No active policy blocks are present in your plan."} />
+          <IntelligenceItem title="Next priority" text={nextTask ? `${nextTask.item.title} is your first incomplete ${formatToken(nextTask.item.phase).toLowerCase()} task.` : "Your checklist is complete; setup and access review are next."} />
         </div>
       </div>
-    </section>
+    </details>
   );
 }
 
 function IntelligenceItem({ title, text }: { title: string; text: string }) {
-  return <article className="bg-white p-4 shadow-[inset_3px_0_0_var(--boardly-border)]"><h3 className="text-sm font-bold text-[var(--boardly-text)]">{title}</h3><p className="mt-2 text-xs leading-5 text-[var(--boardly-muted)]">{text}</p></article>;
+  return <article className="rounded-[10px] bg-[var(--boardly-elevated)] p-4"><h3 className="text-sm font-semibold text-[var(--boardly-text)]">{title}</h3><p className="mt-2 text-xs leading-5 text-[var(--boardly-muted)]">{text}</p></article>;
 }
 
 function SetupReadinessHeader({

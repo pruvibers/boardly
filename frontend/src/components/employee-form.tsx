@@ -1,8 +1,15 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { ApiClientError, generateOnboardingPlan } from "@/lib/api";
 import { OnboardingResult } from "@/components/onboarding-result";
+import { Alert } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button, buttonStyles } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { policyRoleOptions } from "@/lib/employee-display";
 import type {
   OperatingSystem,
@@ -122,12 +129,22 @@ export function EmployeeForm({
     () => deriveManagerOptions(existingPlans),
     [existingPlans],
   );
+  const existingEmployee = useMemo(() => {
+    const employeeId = form.employee_id.trim();
+    if (!employeeId) return null;
+    return (
+      existingPlans.find(
+        (item) => item.plan.employee.employee_id === employeeId,
+      ) ?? null
+    );
+  }, [existingPlans, form.employee_id]);
 
   function updateField<Field extends keyof EmployeeFormState>(
     field: Field,
     value: EmployeeFormState[Field],
   ) {
     setForm((current) => ({ ...current, [field]: value }));
+    if (field === "employee_id") setError("");
   }
 
   function selectDepartment(value: string) {
@@ -177,6 +194,13 @@ export function EmployeeForm({
     event.preventDefault();
     if (isPending) return;
 
+    if (existingEmployee) {
+      setError(
+        "An onboarding plan already exists for this employee. Open the existing plan instead of replacing its saved progress.",
+      );
+      return;
+    }
+
     const department = canonicalDepartment(form.department, departmentOptions);
     if (!department) {
       setError("New department name must not be blank.");
@@ -208,22 +232,34 @@ export function EmployeeForm({
     }
   }
 
+  if (showGeneratedResult && result) {
+    return (
+      <section id="new-onboarding" className="scroll-mt-24 space-y-6">
+        <PlanCreated
+          result={result}
+          onCreateAnother={() => {
+            setForm(initialForm);
+            setDepartmentMode("catalog");
+            setJobTitleMode("catalog");
+            setManagerSelection("new");
+            setResult(null);
+            setError("");
+            window.scrollTo({ top: 0, behavior: "auto" });
+          }}
+        />
+      </section>
+    );
+  }
+
   return (
     <section id="new-onboarding" className="scroll-mt-24 space-y-6">
-      <div className="boardly-surface overflow-hidden">
-        <ol className="grid border-b border-[var(--boardly-border)] bg-[var(--boardly-elevated)] sm:grid-cols-5" aria-label="Onboarding form sections">
-          {["Identity", "Organization", "Manager", "Device", "Review"].map(
-            (label, index) => (
-              <li key={label} className="flex items-center gap-2 border-b border-[var(--boardly-border)] px-4 py-3 text-xs font-bold text-[var(--boardly-muted)] last:border-b-0 sm:border-b-0 sm:border-r sm:last:border-r-0">
-                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--boardly-ink)] text-white">
-                  {index + 1}
-                </span>
-                {label}
-              </li>
-            ),
-          )}
-        </ol>
-
+      <Card padding="none" className="overflow-hidden">
+        <div className="border-b border-[var(--boardly-border)] px-5 py-5 sm:px-7">
+          <h2 className="text-base font-semibold">Employee and organization details</h2>
+          <p className="mt-1 text-sm leading-6 text-[var(--boardly-muted)]">
+            Required fields are marked with an asterisk. Review the key details before creating the plan.
+          </p>
+        </div>
         <form onSubmit={handleSubmit} className="space-y-0">
           <FormSection number="01" title="Identity" description="Verified employee details used to identify this plan.">
             <TextField id="employee_id" label="Employee ID" required value={form.employee_id} onChange={(value) => updateField("employee_id", value)} />
@@ -232,78 +268,78 @@ export function EmployeeForm({
             <TextField id="location" label="Location" required value={form.location} onChange={(value) => updateField("location", value)} />
           </FormSection>
 
-          <FormSection number="02" title="Organization" description="Role policy remains deterministic even when organization labels are extended.">
+          <FormSection number="02" title="Organization" description="Choose the role and team details used to prepare this plan.">
             <div>
               <label htmlFor="job_title" className={labelClassName}>Job title <Required /></label>
-              <select id="job_title" required value={jobTitleMode === "new" ? "__new__" : form.job_title} onChange={(event) => selectJobTitle(event.target.value)} className={fieldClassName}>
+              <Select id="job_title" required value={jobTitleMode === "new" ? "__new__" : form.job_title} onChange={(event) => selectJobTitle(event.target.value)} className="mt-2">
                 {jobTitleOptions.map((title) => <option key={title} value={title}>{title}</option>)}
                 <option value="__new__">Add a new job title…</option>
-              </select>
+              </Select>
               {jobTitleMode === "new" ? (
                 <label className="mt-3 block" htmlFor="new_job_title">
                   <span className={labelClassName}>New job title <Required /></span>
-                  <input id="new_job_title" required value={form.job_title} onChange={(event) => updateField("job_title", event.target.value)} className={fieldClassName} />
+                  <Input id="new_job_title" required value={form.job_title} onChange={(event) => updateField("job_title", event.target.value)} className="mt-2" />
                 </label>
               ) : null}
-              <p className={helperClassName}>Job titles are drawn from persisted employee plans and can be extended for each organization.</p>
+              <p className={helperClassName}>Choose an existing title or add a new one.</p>
             </div>
             <div>
-              <SelectField id="role_id" label="Policy role template" required value={form.role_id} options={policyRoleOptions} onChange={(value) => updateField("role_id", value)} />
-              <p className={helperClassName}>Boardly uses this verified template to determine software, access and onboarding recommendations. Your company job title remains visible separately.</p>
+              <SelectField id="role_id" label="Onboarding role template" required value={form.role_id} options={policyRoleOptions} onChange={(value) => updateField("role_id", value)} />
+              <p className={helperClassName}>Controls software, access, and onboarding recommendations.</p>
             </div>
             <div>
               <label htmlFor="department" className={labelClassName}>Department <Required /></label>
-              <select id="department" required value={departmentMode === "new" ? "__new__" : form.department} onChange={(event) => selectDepartment(event.target.value)} className={fieldClassName}>
+              <Select id="department" required value={departmentMode === "new" ? "__new__" : form.department} onChange={(event) => selectDepartment(event.target.value)} className="mt-2">
                 {departmentOptions.map((department) => <option key={department} value={department}>{department}</option>)}
                 <option value="__new__">Add a new department...</option>
-              </select>
+              </Select>
               {departmentMode === "new" ? (
                 <label className="mt-3 block" htmlFor="new_department">
                   <span className={labelClassName}>New department name <Required /></span>
-                  <input id="new_department" required value={form.department} onChange={(event) => updateField("department", event.target.value)} className={fieldClassName} />
+                  <Input id="new_department" required value={form.department} onChange={(event) => updateField("department", event.target.value)} className="mt-2" />
                 </label>
               ) : null}
-              <p className={helperClassName}>Departments can be extended for each organization. Existing plan data is used to build this demo catalog.</p>
+              <p className={helperClassName}>Choose an existing department or add a new one.</p>
             </div>
             <TextField id="team_id" label="Team" required value={form.team_id} onChange={(value) => updateField("team_id", value)} />
             <SelectField id="seniority" label="Seniority" required value={form.seniority} options={seniorityOptions} onChange={(value) => updateField("seniority", value as SeniorityLevel)} />
           </FormSection>
 
-          <FormSection number="03" title="Manager" description="Choose a manager found in persisted plans or add verified manager details.">
+          <FormSection number="03" title="Manager" description="Choose an existing manager or add a new one.">
             <div className="md:col-span-2">
               <label htmlFor="manager_selection" className={labelClassName}>Manager source</label>
-              <select id="manager_selection" value={managerSelection} onChange={(event) => selectManager(event.target.value)} className={fieldClassName}>
+              <Select id="manager_selection" value={managerSelection} onChange={(event) => selectManager(event.target.value)} className="mt-2">
                 {managerOptions.map((manager) => <option key={manager.key} value={manager.key}>{manager.name} - {manager.email}</option>)}
                 <option value="new">Add a new manager...</option>
-              </select>
+              </Select>
             </div>
             <TextField id="manager_name" label="Manager full name" required value={form.manager_name} onChange={(value) => updateField("manager_name", value)} />
             <TextField id="manager_work_email" label="Manager work email" required type="email" value={form.manager_work_email} onChange={(value) => updateField("manager_work_email", value)} />
             <div className="md:col-span-2">
               <TextField id="manager_title" label="Manager title" value={form.manager_title} onChange={(value) => updateField("manager_title", value)} />
-              <p className={helperClassName}>For new managers, the normalized work email becomes the deterministic manager ID.</p>
+              <p className={helperClassName}>Manager title is optional.</p>
             </div>
           </FormSection>
 
-          <FormSection number="04" title="Device and context" description="Device data shapes supported software and setup-preview behavior.">
+          <FormSection number="04" title="Device and context" description="Device information determines the available setup guidance.">
             <SelectField id="operating_system" label="Operating system" required value={form.operating_system} options={operatingSystemOptions} onChange={(value) => updateField("operating_system", value as OperatingSystem)} />
             <div className="md:col-span-2">
               <label htmlFor="notes" className={labelClassName}>Notes</label>
-              <textarea id="notes" value={form.notes ?? ""} onChange={(event) => updateField("notes", event.target.value)} rows={4} className={fieldClassName} />
-              <p className={helperClassName}>Notes provide context but never control authorization.</p>
+              <textarea id="notes" value={form.notes ?? ""} onChange={(event) => updateField("notes", event.target.value)} rows={4} className="boardly-field mt-2 px-3.5 py-2.5 text-sm" />
+              <p className={helperClassName}>Notes add context but do not change access permissions.</p>
             </div>
           </FormSection>
 
           <section className="border-t border-[var(--boardly-border)] bg-[var(--boardly-elevated)] px-5 py-6 sm:px-7" aria-labelledby="review-generate-title">
             <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
               <div>
-                <p className="text-xs font-bold uppercase text-[var(--boardly-accent)]">05 / Review and generate</p>
-                <h3 id="review-generate-title" className="mt-2 text-lg font-bold text-[var(--boardly-text)]">Verify the plan inputs</h3>
+                <p className="text-xs font-semibold uppercase text-[var(--boardly-accent)]">05 / Review</p>
+                <h3 id="review-generate-title" className="mt-2 text-lg font-semibold text-[var(--boardly-text)]">Verify the plan inputs</h3>
                 <dl className="mt-4 grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
                   <ReviewItem label="Employee" value={form.full_name || "Not entered"} />
                   <ReviewItem label="Work email" value={form.work_email || "Not entered"} />
                   <ReviewItem label="Job title" value={form.job_title || "Not entered"} />
-                  <ReviewItem label="Policy role template" value={formatOption(form.role_id, policyRoleOptions)} />
+                  <ReviewItem label="Onboarding role" value={formatOption(form.role_id, policyRoleOptions)} />
                   <ReviewItem label="Department" value={form.department || "Not entered"} />
                   <ReviewItem label="Team" value={form.team_id || "Not entered"} />
                   <ReviewItem label="Seniority" value={formatToken(form.seniority)} />
@@ -311,18 +347,105 @@ export function EmployeeForm({
                   <ReviewItem label="Operating system" value={formatToken(form.operating_system)} />
                   <ReviewItem label="Location" value={form.location || "Not entered"} />
                 </dl>
-                {error ? <p role="alert" aria-live="polite" className="mt-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950">{error}</p> : null}
+                {existingEmployee ? (
+                  <Alert tone="warning" className="mt-5" title="An onboarding plan already exists">
+                    <p>
+                      A plan already exists for {existingEmployee.plan.employee.full_name}. Open it to continue.
+                    </p>
+                    <Link
+                      href={`/workspace/employees/${encodeURIComponent(existingEmployee.plan.employee.employee_id)}`}
+                      className={buttonStyles({ variant: "secondary", size: "sm", className: "mt-3" })}
+                    >
+                      View existing plan
+                    </Link>
+                  </Alert>
+                ) : null}
+                {error ? <Alert tone="danger" role="alert" aria-live="polite" className="mt-4">{error}</Alert> : null}
               </div>
-              <button type="submit" disabled={isPending} className="rounded-lg bg-[var(--boardly-ink)] px-6 py-3 text-sm font-bold text-white transition hover:bg-[#182641] focus:outline-none focus:ring-2 focus:ring-[var(--boardly-focus)] focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-gray-400">
-                {isPending ? "Generating plan..." : "Generate onboarding plan"}
-              </button>
+              <Button type="submit" size="lg" disabled={isPending || Boolean(existingEmployee)} aria-busy={isPending}>
+                {isPending ? "Creating plan…" : "Create onboarding plan"}
+              </Button>
             </div>
           </section>
         </form>
-      </div>
+      </Card>
 
-      {showGeneratedResult && result ? <OnboardingResult result={result} /> : null}
     </section>
+  );
+}
+
+function PlanCreated({
+  result,
+  onCreateAnother,
+}: {
+  result: PlannedOnboardingResult;
+  onCreateAnother: () => void;
+}) {
+  const employee = result.plan.employee;
+  const resourceCount =
+    result.plan.software_ids.length +
+    result.plan.document_ids.length;
+  const accessReviewCount = result.plan.access_recommendations.length;
+  const blockedCount = result.policy_decisions.filter(
+    (decision) => decision.decision === "blocked",
+  ).length;
+
+  return (
+    <div className="space-y-4" aria-live="polite">
+      <Card as="section" padding="lg" className="border-[#abefc6]">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <Badge tone="success">Plan created</Badge>
+            <h2 className="mt-4 text-2xl font-semibold tracking-[-0.02em]">
+              {employee.full_name}
+            </h2>
+            <p className="mt-2 text-sm text-[var(--boardly-muted)]">
+              {employee.job_title || formatOption(employee.role_id, policyRoleOptions)} · {employee.department}
+            </p>
+            <dl className="mt-6 grid grid-cols-2 gap-5 sm:grid-cols-3">
+              <ReviewItem label="Tasks" value={String(result.plan.checklist.length)} />
+              <ReviewItem label="Resources" value={String(resourceCount)} />
+              <ReviewItem
+                label="Access review"
+                value={String(accessReviewCount)}
+              />
+            </dl>
+          </div>
+          <div className="flex flex-col gap-2 sm:flex-row lg:max-w-sm lg:flex-wrap lg:justify-end">
+            <Link
+              href={`/workspace/employees/${encodeURIComponent(employee.employee_id)}`}
+              className={buttonStyles({ size: "lg" })}
+            >
+              View employee
+            </Link>
+            <Link
+              href={`/onboard/${encodeURIComponent(employee.employee_id)}/overview`}
+              target="_blank"
+              rel="noreferrer"
+              className={buttonStyles({ variant: "secondary", size: "lg" })}
+            >
+              Preview experience
+            </Link>
+            <Button variant="ghost" size="lg" onClick={onCreateAnother}>
+              Create another
+            </Button>
+          </div>
+        </div>
+        {blockedCount > 0 ? (
+          <Alert tone="warning" className="mt-6">
+            {blockedCount} access item{blockedCount === 1 ? "" : "s"} blocked by policy. Review the employee plan before handoff.
+          </Alert>
+        ) : null}
+      </Card>
+      <details className="rounded-[var(--boardly-radius-surface)] border border-[var(--boardly-border)] bg-white">
+        <summary className="cursor-pointer px-5 py-4 text-sm font-semibold text-[var(--boardly-text)]">
+          View technical plan details
+        </summary>
+        <div className="border-t border-[var(--boardly-border)] p-4 sm:p-5">
+          <OnboardingResult result={result} />
+        </div>
+      </details>
+    </div>
   );
 }
 
@@ -392,8 +515,7 @@ function canonicalCatalogValue(value: string, options: string[]) {
   );
 }
 
-const fieldClassName = "mt-2 w-full rounded-lg border border-[var(--boardly-border)] bg-white px-3.5 py-2.5 text-sm text-[var(--boardly-text)] outline-none transition placeholder:text-gray-400 focus:border-[var(--boardly-accent)] focus:ring-2 focus:ring-[var(--boardly-focus)]";
-const labelClassName = "block text-xs font-bold text-[var(--boardly-text)]";
+const labelClassName = "block text-sm font-medium text-[var(--boardly-text)]";
 const helperClassName = "mt-2 text-xs leading-5 text-[var(--boardly-muted)]";
 
 function FormSection({ number, title, description, children }: { number: string; title: string; description: string; children: ReactNode }) {
@@ -401,8 +523,8 @@ function FormSection({ number, title, description, children }: { number: string;
     <fieldset className="grid gap-6 border-t border-[var(--boardly-border)] px-5 py-7 first:border-t-0 sm:px-7 lg:grid-cols-[190px_minmax(0,1fr)]">
       <legend className="sr-only">{title}</legend>
       <div>
-        <p className="text-xs font-bold text-[var(--boardly-accent)]">{number}</p>
-        <h3 className="mt-1 text-base font-bold text-[var(--boardly-text)]">{title}</h3>
+        <p className="text-xs font-semibold text-[var(--boardly-accent)]">{number}</p>
+        <h3 className="mt-1 text-base font-semibold text-[var(--boardly-text)]">{title}</h3>
         <p className="mt-2 text-xs leading-5 text-[var(--boardly-muted)]">{description}</p>
       </div>
       <div className="grid grid-cols-1 gap-5 md:grid-cols-2">{children}</div>
@@ -414,7 +536,7 @@ function TextField({ id, label, value, onChange, required = false, type = "text"
   return (
     <div>
       <label htmlFor={id} className={labelClassName}>{label} {required ? <Required /> : null}</label>
-      <input id={id} type={type} required={required} value={value} onChange={(event) => onChange(event.target.value)} className={fieldClassName} />
+      <Input id={id} type={type} required={required} value={value} onChange={(event) => onChange(event.target.value)} className="mt-2" />
     </div>
   );
 }
@@ -423,9 +545,9 @@ function SelectField({ id, label, value, options, onChange, required = false }: 
   return (
     <div>
       <label htmlFor={id} className={labelClassName}>{label} {required ? <Required /> : null}</label>
-      <select id={id} required={required} value={value} onChange={(event) => onChange(event.target.value)} className={fieldClassName}>
+      <Select id={id} required={required} value={value} onChange={(event) => onChange(event.target.value)} className="mt-2">
         {options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-      </select>
+      </Select>
     </div>
   );
 }
@@ -435,7 +557,7 @@ function Required() {
 }
 
 function ReviewItem({ label, value }: { label: string; value: string }) {
-  return <div><dt className="text-xs font-semibold text-[var(--boardly-muted)]">{label}</dt><dd className="mt-1 break-words font-bold text-[var(--boardly-text)]">{value}</dd></div>;
+  return <div><dt className="text-xs font-medium text-[var(--boardly-muted)]">{label}</dt><dd className="mt-1 break-words font-semibold text-[var(--boardly-text)]">{value}</dd></div>;
 }
 
 function formatOption(value: string, options: { label: string; value: string }[]) {

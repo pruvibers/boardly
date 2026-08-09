@@ -1,7 +1,11 @@
 from fastapi import APIRouter, HTTPException
 
 from app.domain.models import VerifiedEmployeeProfile
-from app.persistence.database import BoardlyDatabase, DuplicateWorkEmailError
+from app.persistence.database import (
+    BoardlyDatabase,
+    DuplicateEmployeeIdError,
+    DuplicateWorkEmailError,
+)
 from app.persistence.models import PersistedDemoState
 from app.planner.service import PlannedOnboardingResult, generate_onboarding_plan
 
@@ -14,8 +18,10 @@ def generate_plan(employee: VerifiedEmployeeProfile) -> PlannedOnboardingResult:
         result = generate_onboarding_plan(employee)
         BoardlyDatabase().save_plan(result)
         return result
+    except DuplicateEmployeeIdError as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
     except DuplicateWorkEmailError as error:
-        raise HTTPException(status_code=422, detail=str(error)) from error
+        raise HTTPException(status_code=409, detail=str(error)) from error
     except ValueError as error:
         raise HTTPException(status_code=422, detail=str(error)) from error
 

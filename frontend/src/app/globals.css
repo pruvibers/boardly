@@ -4,20 +4,27 @@
 
 :root {
   color-scheme: light;
-  --boardly-app: #f3f5f8;
+  --boardly-app: #f5f6f8;
   --boardly-surface: #ffffff;
   --boardly-elevated: #f8fafc;
-  --boardly-text: #172033;
-  --boardly-muted: #647084;
-  --boardly-accent: #6e36e4;
-  --boardly-success: #16845b;
-  --boardly-warning: #b56a08;
-  --boardly-danger: #c43d4b;
-  --boardly-border: #dfe4eb;
-  --boardly-focus: rgba(110, 54, 228, 0.3);
-  --boardly-ink: #101b31;
+  --boardly-text: #182230;
+  --boardly-muted: #667085;
+  --boardly-accent: #6941c6;
+  --boardly-accent-hover: #53389e;
+  --boardly-accent-soft: #f4f0ff;
+  --boardly-success: #067647;
+  --boardly-success-soft: #ecfdf3;
+  --boardly-warning: #b54708;
+  --boardly-warning-soft: #fffaeb;
+  --boardly-danger: #b42318;
+  --boardly-danger-soft: #fef3f2;
+  --boardly-border: #d8dee8;
+  --boardly-border-strong: #b8c1ce;
+  --boardly-focus: #7f56d9;
+  --boardly-ink: #101828;
   --boardly-radius-surface: 12px;
-  --boardly-shadow-surface: 0 10px 28px rgba(15, 23, 42, 0.07);
+  --boardly-shadow-surface: 0 1px 2px rgba(16, 24, 40, 0.04);
+  --boardly-shadow-overlay: 0 20px 40px rgba(16, 24, 40, 0.14);
   background: var(--boardly-app);
   color: var(--boardly-text);
 }
@@ -37,8 +44,11 @@ body {
   background: var(--boardly-app);
   color: var(--boardly-text);
   font-family:
-    Arial,
-    Helvetica,
+    Inter,
+    ui-sans-serif,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
     sans-serif;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
@@ -49,6 +59,16 @@ input,
 select,
 textarea {
   font: inherit;
+}
+
+::selection {
+  background: var(--boardly-accent-soft);
+  color: var(--boardly-ink);
+}
+
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 3px solid var(--boardly-focus) !important;
+  outline-offset: 2px;
 }
 
 @layer components {
@@ -63,5 +83,36 @@ textarea {
     border: 1px solid var(--boardly-border);
     border-radius: var(--boardly-radius-surface);
     background: var(--boardly-elevated);
+  }
+
+  .boardly-field {
+    width: 100%;
+    border: 1px solid var(--boardly-border-strong);
+    border-radius: 10px;
+    background: var(--boardly-surface);
+    color: var(--boardly-text);
+    transition:
+      border-color 150ms ease,
+      box-shadow 150ms ease;
+  }
+
+  .boardly-field:hover {
+    border-color: #98a2b3;
+  }
+
+  .boardly-field:focus {
+    border-color: var(--boardly-focus);
+    box-shadow: 0 0 0 3px rgba(127, 86, 217, 0.14);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

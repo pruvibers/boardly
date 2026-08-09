@@ -8,6 +8,19 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        boardly: {
+          app: "var(--boardly-app)",
+          surface: "var(--boardly-surface)",
+          elevated: "var(--boardly-elevated)",
+          text: "var(--boardly-text)",
+          muted: "var(--boardly-muted)",
+          border: "var(--boardly-border)",
+          accent: "var(--boardly-accent)",
+          ink: "var(--boardly-ink)",
+          success: "var(--boardly-success)",
+          warning: "var(--boardly-warning)",
+          danger: "var(--boardly-danger)",
+        },
         ink: "#172033",
         slate: "#455469",
         mist: "#eef2f6",
@@ -18,6 +31,8 @@ const config: Config = {
       },
       boxShadow: {
         soft: "0 18px 45px rgba(23, 32, 51, 0.08)",
+        surface: "var(--boardly-shadow-surface)",
+        overlay: "var(--boardly-shadow-overlay)",
       },
     },
   },

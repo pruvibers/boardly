@@ -35,6 +35,22 @@ def test_generate_plan_returns_200_for_valid_backend_junior_employee() -> None:
     assert response.status_code == 200
 
 
+def test_duplicate_employee_id_returns_409_and_preserves_existing_plan() -> None:
+    first = make_employee_payload(full_name="First Employee")
+    replacement = make_employee_payload(
+        full_name="Replacement Employee",
+        work_email="replacement@example.com",
+    )
+
+    assert post_generate_plan(first).status_code == 200
+    duplicate = post_generate_plan(replacement)
+
+    assert duplicate.status_code == 409
+    stored = client.get("/onboarding/plans/emp-001")
+    assert stored.status_code == 200
+    assert stored.json()["plan"]["employee"]["full_name"] == "First Employee"
+
+
 def test_generate_plan_response_contains_plan_and_policy_decisions() -> None:
     response = post_generate_plan(make_employee_payload())
     body = response.json()

@@ -18,6 +18,10 @@ class DuplicateWorkEmailError(ValueError):
     """Raised when a normalized work email belongs to another employee."""
 
 
+class DuplicateEmployeeIdError(ValueError):
+    """Raised when a new plan reuses an existing employee ID."""
+
+
 class BoardlyDatabase:
     def __init__(self, path: str | Path | None = None) -> None:
         configured_path = path or os.getenv("BOARDLY_DB_PATH")
@@ -62,11 +66,29 @@ class BoardlyDatabase:
                 """
             )
 
-    def save_plan(self, result: PlannedOnboardingResult) -> None:
+    def save_plan(
+        self,
+        result: PlannedOnboardingResult,
+        *,
+        replace_existing: bool = False,
+    ) -> None:
         employee = result.plan.employee
         normalized_email = normalize_work_email(employee.work_email)
 
         with self.connect() as connection:
+            existing_employee = connection.execute(
+                """
+                SELECT employee_id
+                FROM onboarding_plans
+                WHERE employee_id = ?
+                """,
+                (employee.employee_id,),
+            ).fetchone()
+            if existing_employee is not None and not replace_existing:
+                raise DuplicateEmployeeIdError(
+                    "an onboarding plan already exists for this employee ID"
+                )
+
             duplicate = connection.execute(
                 """
                 SELECT employee_id
@@ -84,30 +106,64 @@ class BoardlyDatabase:
                 "INSERT INTO plan_revisions DEFAULT VALUES"
             )
             revision_id = revision_cursor.lastrowid
-            connection.execute(
-                """
-                INSERT INTO onboarding_plans (
-                    employee_id,
-                    work_email,
-                    result_json,
-                    revision_id
-                ) VALUES (?, ?, ?, ?)
-                ON CONFLICT(employee_id) DO UPDATE SET
-                    work_email = excluded.work_email,
-                    result_json = excluded.result_json,
-                    revision_id = excluded.revision_id
-                """,
-                (
-                    employee.employee_id,
-                    normalized_email,
-                    result.model_dump_json(),
-                    revision_id,
-                ),
+            values = (
+                employee.employee_id,
+                normalized_email,
+                result.model_dump_json(),
+                revision_id,
             )
-            connection.execute(
-                "DELETE FROM demo_states WHERE employee_id = ?",
-                (employee.employee_id,),
-            )
+            if replace_existing:
+                connection.execute(
+                    """
+                    INSERT INTO onboarding_plans (
+                        employee_id,
+                        work_email,
+                        result_json,
+                        revision_id
+                    ) VALUES (?, ?, ?, ?)
+                    ON CONFLICT(employee_id) DO UPDATE SET
+                        work_email = excluded.work_email,
+                        result_json = excluded.result_json,
+                        revision_id = excluded.revision_id
+                    """,
+                    values,
+                )
+                connection.execute(
+                    "DELETE FROM demo_states WHERE employee_id = ?",
+                    (employee.employee_id,),
+                )
+                return
+
+            try:
+                connection.execute(
+                    """
+                    INSERT INTO onboarding_plans (
+                        employee_id,
+                        work_email,
+                        result_json,
+                        revision_id
+                    ) VALUES (?, ?, ?, ?)
+                    """,
+                    values,
+                )
+            except sqlite3.IntegrityError as error:
+                employee_exists = connection.execute(
+                    "SELECT 1 FROM onboarding_plans WHERE employee_id = ?",
+                    (employee.employee_id,),
+                ).fetchone()
+                if employee_exists is not None:
+                    raise DuplicateEmployeeIdError(
+                        "an onboarding plan already exists for this employee ID"
+                    ) from error
+                email_exists = connection.execute(
+                    "SELECT 1 FROM onboarding_plans WHERE work_email = ?",
+                    (normalized_email,),
+                ).fetchone()
+                if email_exists is not None:
+                    raise DuplicateWorkEmailError(
+                        "work email is already assigned to another employee"
+                    ) from error
+                raise
 
     def list_plans(self) -> list[PlannedOnboardingResult]:
         with self.connect() as connection:

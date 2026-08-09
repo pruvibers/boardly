@@ -1,8 +1,13 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { BoardlyLogo } from "@/components/boardly-logo";
+import { Alert } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 
 type RoleOption = "admin" | "newcomer";
 
@@ -10,23 +15,18 @@ export function RoleLanding() {
   const [selectedRole, setSelectedRole] = useState<RoleOption | null>(null);
 
   return (
-    <main className="min-h-screen bg-[#F8F8FC] px-5 py-10 text-gray-950 sm:px-8 lg:py-16">
-      <div className="mx-auto max-w-5xl">
+    <main id="main-content" tabIndex={-1} className="min-h-screen bg-[var(--boardly-app)] px-5 py-10 text-[var(--boardly-text)] sm:px-8 lg:py-16">
+      <div className="mx-auto max-w-4xl">
         <div className="text-center">
           <BoardlyLogo variant="landing" className="justify-center" />
-          <p className="mt-2 text-xs font-bold uppercase tracking-[0.14em] text-[#6E36E4]">
-            Hackathon demo
-          </p>
-          <h1 className="mt-4 text-3xl font-bold sm:text-4xl">
-            Choose your Boardly experience
+          <div className="mt-5">
+            <Badge tone="brand">Demo environment</Badge>
+          </div>
+          <h1 className="mt-5 text-3xl font-semibold tracking-[-0.03em] sm:text-4xl">
+            Welcome to Boardly
           </h1>
-          <p className="mx-auto mt-4 max-w-2xl text-sm leading-6 text-gray-600 sm:text-base">
-            Enter the Operations Workspace or continue with your personal
-            newcomer experience.
-          </p>
-          <p className="mx-auto mt-3 max-w-2xl text-xs leading-5 text-gray-500">
-            This sign-in is for the hackathon demonstration and is not
-            production authentication.
+          <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-[var(--boardly-muted)] sm:text-base">
+            Manage secure onboarding or continue your personal onboarding plan.
           </p>
         </div>
 
@@ -34,14 +34,16 @@ export function RoleLanding() {
           <div className="mt-10 grid gap-5 md:grid-cols-2">
             <RoleCard
               title="Operator"
-              description="Create verified onboarding plans, review policy decisions, track employee progress and open newcomer previews."
-              action="Enter Operations Workspace"
+              description="Create plans, review approvals, and track employee progress."
+              action="Continue as operator"
+              icon="operator"
               onClick={() => setSelectedRole("admin")}
             />
             <RoleCard
-              title="Newcomer"
-              description="Follow onboarding tasks, review resources, understand access status and prepare your device setup."
-              action="Enter newcomer demo"
+              title="New employee"
+              description="Complete tasks, review resources, and follow your device setup."
+              action="Continue as new employee"
+              icon="employee"
               onClick={() => setSelectedRole("newcomer")}
             />
           </div>
@@ -52,6 +54,10 @@ export function RoleLanding() {
             onBack={() => setSelectedRole(null)}
           />
         )}
+        <p className="mx-auto mt-8 max-w-2xl text-center text-xs leading-5 text-[var(--boardly-muted)]">
+          This local hackathon demo uses simplified authentication and does not
+          connect to external identity or provisioning systems.
+        </p>
       </div>
     </main>
   );
@@ -61,30 +67,29 @@ function RoleCard({
   title,
   description,
   action,
+  icon,
   onClick,
 }: {
   title: string;
   description: string;
   action: string;
+  icon: "operator" | "employee";
   onClick: () => void;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="boardly-surface group min-h-64 border-purple-100 p-7 text-left transition hover:-translate-y-0.5 hover:border-purple-300 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-[#6E36E4]/40 focus:ring-offset-2 sm:p-8"
-    >
-      <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-100 text-[#6E36E4]">
-        <RoleIcon />
+    <Card as="article" padding="lg" className="flex min-h-64 flex-col">
+      <span className="flex h-11 w-11 items-center justify-center rounded-[10px] bg-[var(--boardly-accent-soft)] text-[var(--boardly-accent)]">
+        {icon === "operator" ? <OperatorIcon /> : <EmployeeIcon />}
       </span>
-      <span className="mt-6 block text-2xl font-bold text-gray-950">{title}</span>
-      <span className="mt-3 block text-sm leading-6 text-gray-600">
+      <h2 className="mt-6 text-xl font-semibold tracking-[-0.01em]">{title}</h2>
+      <p className="mt-2 flex-1 text-sm leading-6 text-[var(--boardly-muted)]">
         {description}
-      </span>
-      <span className="mt-7 inline-flex text-sm font-bold text-[#6E36E4] group-hover:text-[#5B21B6]">
+      </p>
+      <Button variant="secondary" size="lg" className="mt-7 w-full" onClick={onClick}>
         {action}
-      </span>
-    </button>
+        <ArrowIcon />
+      </Button>
+    </Card>
   );
 }
 
@@ -100,7 +105,12 @@ function SignInForm({
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isPending, setIsPending] = useState(false);
+  const headingRef = useRef<HTMLHeadingElement>(null);
   const isAdmin = role === "admin";
+
+  useEffect(() => {
+    headingRef.current?.focus();
+  }, []);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -128,78 +138,82 @@ function SignInForm({
   }
 
   return (
-    <section className="boardly-surface mx-auto mt-10 max-w-xl border-purple-100 p-6 sm:p-8">
-      <button
-        type="button"
-        onClick={onBack}
-        className="text-sm font-bold text-[#6E36E4] focus:outline-none focus:ring-2 focus:ring-[#6E36E4]/30"
+    <Card as="section" padding="lg" className="mx-auto mt-10 max-w-xl">
+      <Button variant="ghost" size="sm" onClick={onBack} className="-ml-3">
+        <BackIcon />
+        Back to role selection
+      </Button>
+      <h2
+        ref={headingRef}
+        tabIndex={-1}
+        className="mt-5 text-2xl font-semibold tracking-[-0.02em]"
       >
-        Back
-      </button>
-      <h2 className="mt-5 text-2xl font-bold text-gray-950">
         {isAdmin ? "Operator sign-in" : "Newcomer sign-in"}
       </h2>
-      <p className="mt-2 text-sm leading-6 text-gray-600">
+      <p className="mt-2 text-sm leading-6 text-[var(--boardly-muted)]">
         {isAdmin
-          ? "Use the configured operator demo credentials to enter the Operations Workspace."
-          : "Use the work email on your persisted onboarding plan and demo password 123."}
+          ? "Use the demo operator account to manage onboarding."
+          : "Use the work email from your onboarding plan. Ask your operator if you do not know it."}
       </p>
       {isAdmin ? (
-        <p className="mt-3 rounded-xl bg-purple-50 px-4 py-3 text-sm text-[#5B21B6]">
-          Demo credentials: admin@boardly.demo / 123
-        </p>
-      ) : null}
+        <Alert tone="info" className="mt-4">
+          <span className="font-semibold">Demo account:</span>{" "}
+          admin@boardly.demo / 123
+        </Alert>
+      ) : (
+        <Alert tone="info" className="mt-4">
+          The demo password is <span className="font-semibold">123</span>.
+        </Alert>
+      )}
       <form onSubmit={handleSubmit} className="mt-6 space-y-5">
         <label className="block">
-          <span className="text-sm font-bold text-gray-950">
+          <span className="text-sm font-medium text-[var(--boardly-text)]">
             {isAdmin ? "Email" : "Work email"}
           </span>
-          <input
+          <Input
             type="email"
             required
             autoComplete="username"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
-            className="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#6E36E4]/30"
+            className="mt-2"
           />
         </label>
         <label className="block">
-          <span className="text-sm font-bold text-gray-950">Password</span>
-          <input
+          <span className="text-sm font-medium text-[var(--boardly-text)]">Password</span>
+          <Input
             type="password"
             required
             autoComplete="current-password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
-            className="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#6E36E4]/30"
+            className="mt-2"
           />
         </label>
         {error ? (
-          <p
+          <Alert
+            tone="danger"
             role="alert"
             aria-live="polite"
-            className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-900"
           >
             {error}
-          </p>
+          </Alert>
         ) : null}
-        <button
+        <Button
           type="submit"
           disabled={isPending}
-          className="w-full rounded-xl bg-[#6E36E4] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#5B21B6] focus:outline-none focus:ring-2 focus:ring-[#6E36E4]/40 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-gray-400"
+          aria-busy={isPending}
+          size="lg"
+          className="w-full"
         >
           {isPending
             ? "Signing in…"
             : isAdmin
               ? "Enter Operations Workspace"
               : "Enter newcomer demo"}
-        </button>
+        </Button>
       </form>
-      <p className="mt-5 text-xs leading-5 text-gray-500">
-        This sign-in is for the hackathon demonstration and is not production
-        authentication.
-      </p>
-    </section>
+    </Card>
   );
 }
 
@@ -224,7 +238,7 @@ function extractLoginError(value: unknown) {
   return "Demo sign-in could not be completed.";
 }
 
-function RoleIcon() {
+function OperatorIcon() {
   return (
     <svg
       aria-hidden="true"
@@ -234,11 +248,31 @@ function RoleIcon() {
       stroke="currentColor"
       strokeWidth="2"
     >
-      <path
-        d="M12 3 4 7v5c0 5 3.5 8 8 9 4.5-1 8-4 8-9V7l-8-4Z"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+      <path d="M4 7h16v12H4zM9 7V5h6v2M4 11h16M10 14h4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function EmployeeIcon() {
+  return (
+    <svg aria-hidden="true" className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM3 21v-2a6 6 0 0 1 12 0v2M16 11l2 2 4-5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function ArrowIcon() {
+  return (
+    <svg aria-hidden="true" className="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <path d="m7 4 6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function BackIcon() {
+  return (
+    <svg aria-hidden="true" className="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <path d="m12.5 4-6 6 6 6" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
